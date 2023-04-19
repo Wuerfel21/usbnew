@@ -1,0 +1,5 @@
+*.binary
+*.p2asm
+*.lst
+*.zip
+garbo/*

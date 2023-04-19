@@ -1,0 +1,43 @@
+CON
+_CLKFREQ = 252_000_000
+
+  vgaBase =  32
+  vgaVsync = vgaBase + 4
+
+
+OBJ
+text: "p2textdrv"
+usb: "usbnew"
+
+PUB main() | tmp
+
+text.initVga(-1,vgaBase,vgaVsync,0,text.VGA)
+text.setTextColours($F,$1)
+text.clear()
+
+usb.start()
+
+text.printStr(@"USB HID test")
+
+repeat
+  text.setTextPos(1,0)
+  printraw(@"Keyboard : ",usb.get_keyboard_raw_buffer(),usb.KBD_IN_RPT_LEN)
+  printraw(@"Gamepad 0: ",usb.get_gamepad_raw_buffer(),32)
+  printraw(@"Gamepad 1: ",usb.get_gamepad_raw_buffer()+1*usb.HID_IN_RPT_LEN,32)
+  printraw(@"Gamepad 2: ",usb.get_gamepad_raw_buffer()+2*usb.HID_IN_RPT_LEN,32)
+  printraw(@"Gamepad 3: ",usb.get_gamepad_raw_buffer()+3*usb.HID_IN_RPT_LEN,32)
+  printraw(@"Gamepad 4: ",usb.get_gamepad_raw_buffer()+4*usb.HID_IN_RPT_LEN,32)
+
+PRI printraw(name,ptr,size)
+  text.printStr(name)
+  repeat size
+    text.hex(byte[ptr++],2)
+    text.tx(" ")
+  text.nl()
+
+    
+
+
+
+
+
