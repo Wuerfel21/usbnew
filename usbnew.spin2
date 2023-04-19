@@ -11,18 +11,46 @@
 }
 CON
 
-    _CLKFREQ = 252_000_000
+    CLKFREQ_PTR = $14
 
     USB_BASE_PIN  = 16
 
     ACTIVITY_LED  = 57
     ERROR_LED     = 56
 
+
+    EMUPAD_MAX_DEV = 2 ' Set to 0 to disable EmuPad interface
+    
+    ' EmuPad report format config
+    EMUPAD_TYPE_NIBBLE = 7
+    EMUPAD_UP_BIT = 0
+    EMUPAD_DOWN_BIT = 1
+    EMUPAD_LEFT_BIT = 2
+    EMUPAD_RIGHT_BIT = 3
+    EMUPAD_BT0_BIT = 4
+    EMUPAD_BT1_BIT = 5
+    EMUPAD_BT2_BIT = 6
+    EMUPAD_BT3_BIT = 7
+    EMUPAD_BT4_BIT = 8
+    EMUPAD_BT5_BIT = 9
+    EMUPAD_BT6_BIT = 10
+    EMUPAD_BT7_BIT = 11
+    EMUPAD_BT8_BIT = 12
+    EMUPAD_BT9_BIT = 13
+
+    ' Computed magic values
+    _EMUPAD_UD_MASK = (decod EMUPAD_UP_BIT) | (decod EMUPAD_DOWN_BIT)
+    _EMUPAD_LR_MASK = (decod EMUPAD_LEFT_BIT) | (decod EMUPAD_RIGHT_BIT)
+
 PUB test_main()
   start()
 
 PUB start() : r
   return coginit(COGEXEC_NEW,@usb_host_start,0)
+
+PUB set_emupad_ptr(ptr) ' Call before starting!
+  if EMUPAD_MAX_DEV > 0
+    emupad_out_ptr := ptr
 
 PUB get_keyboard_raw_buffer() :r
   return @kb_cur_report
@@ -599,7 +627,7 @@ kb_cur_report_p long    0
 kb_pre_report_p long    0
 gp_descr_p      long    0
 gp_cur_report_p long    0
-gp_pre_report_p long    0
+'gp_pre_report_p long    0
 hub_descr_p     long    0
 urx_buff_p      long    0
 dev_desc_buff_p long    0
@@ -649,6 +677,9 @@ iframe_ct_new   long    0
 iframe_ct_base  long    0
 p2rev_val       long    P2RevB
 utx_tweak       long    0         ' Sysclock speeds above ~120MHz need some fairy dust for USB tx
+if EMUPAD_MAX_DEV > 0
+emupad_out_ptr  long    0
+end
 ' This register block is reset to zero when a USB device connects
 hreg_init_start
 hstatus         long    0         ' Host status flags
@@ -695,6 +726,12 @@ hkbd_poll_cnt   long    0         ' Poll interval counter used for key auto-repe
 hkbd_ledstates  long    0         ' Off/on state of keyboard LEDs
 hpad_ep_addr    long    0, 0[4]
 hpad_out_addr   long    0
+
+if EMUPAD_MAX_DEV > 0
+hkbd_emupad_buffer long 0[EMUPAD_MAX_DEV]
+hpad_emupad_buffer long 0[EMUPAD_MAX_DEV]
+end
+
 hreg_init_end
 ' Variables dependent on the system freqency
 _var_64_lower_  res     1
@@ -1152,7 +1189,7 @@ retry_wait
 
 host_reset
                 setint1 #0                              ' Ensure 1ms frame strobe interrupt is off
-                mov     htmp, ##_CLKFREQ                ' Get current sysclock setting
+                rdlong   htmp, #CLKFREQ_PTR             ' Get current sysclock setting
 ' FIXME: kludge to set a USB tx byte write ACKPIN<->WRPIN delay.
                 cmp     htmp, ##168_000_000     wcz
         if_be   mov     utx_tweak, #0
@@ -1209,7 +1246,7 @@ discon_entry
 ' device to connect (Section 7.1.7.3).
 '-----------------------------------------------------------------------------------------------------------------
 disconnected
-                mov     hr1, ##_CLKFREQ                 ' Check to see if the system frequency has changed
+                rdlong  hr1, #CLKFREQ_PTR               ' Check to see if the system frequency has changed
                 cmp     hr1, save_sysclk        wz
         if_nz   jmp     #host_reset                     ' host_reset will apply the new USB bus NCO calculation
                 shr     hr1, #3                         ' Pulse the activity LED every two seconds but break
@@ -1283,18 +1320,21 @@ hidle
                 add     pa, hcog_base_addr
                 mov     ep_addr_pid, hpad_ep_addr wz
         if_nz   call    pa
-                jmp     #.nopoll
+                jmp     #.after_poll
         
 .hub_devices
-                ' TODO: fix properly
+                ' TODO: fix pointer issues properly
                 loc     pb, #gp_cur_report
                 mov     gp_cur_report_p, pb
-                loc     pb, #gp_pre_report
-                mov     gp_pre_report_p, pb
+                'loc     pb, #gp_pre_report
+                'mov     gp_pre_report_p, pb
                 loc     pb, #gp_descr
                 mov     gp_descr_p, pb
 
+                {
+
                 mov     hdev_ready, hdev_ready + 1
+                mov     hub_curr_port,#1
                 'add    gp_descr_p, #HID_DESCR_LEN
                 mov     gp_descr_len, gp_descr_len + 1
                 'add    gp_cur_report_p, #HID_IN_RPT_LEN
@@ -1307,6 +1347,7 @@ hidle
                 mov     gp_next_datax + 1, gp_next_datax
 
                 mov     hdev_ready, hdev_ready + 2
+                mov     hub_curr_port,#2
                 add     gp_descr_p, #HID_DESCR_LEN
                 mov     gp_descr_len, gp_descr_len + 2
                 add     gp_cur_report_p, #HID_IN_RPT_LEN
@@ -1319,6 +1360,7 @@ hidle
                 mov     gp_next_datax + 2, gp_next_datax
 
                 mov     hdev_ready, hdev_ready + 3
+                mov     hub_curr_port,#3
                 add     gp_descr_p, #HID_DESCR_LEN
                 mov     gp_descr_len, gp_descr_len + 3
                 add     gp_cur_report_p, #HID_IN_RPT_LEN
@@ -1331,6 +1373,7 @@ hidle
                 mov     gp_next_datax + 3, gp_next_datax
 
                 mov     hdev_ready, hdev_ready + 4
+                mov     hub_curr_port,#4
                 add     gp_descr_p, #HID_DESCR_LEN
                 mov     gp_descr_len, gp_descr_len + 4
                 add     gp_cur_report_p, #HID_IN_RPT_LEN
@@ -1341,12 +1384,37 @@ hidle
                 add     pa, hcog_base_addr
         if_nz   call    pa
                 mov     gp_next_datax + 4, gp_next_datax
+                }
 
-                sub     gp_descr_p, ##HID_DESCR_LEN * 3
-                sub     gp_cur_report_p, ##HID_IN_RPT_LEN * 3
-                sub     gp_pre_report_p, ##HID_IN_RPT_LEN * 3
+                mov hub_curr_port,#1
+.hubdev_loop
+                alts    hub_curr_port,#hdev_ready
+                mov     hdev_ready,0-0
+                alts    hub_curr_port,#gp_descr_len
+                mov     gp_descr_len,0-0
+                alts    hub_curr_port,#gp_next_datax
+                mov     gp_next_datax,0-0
+                alts    hub_curr_port,#hpad_ep_addr
+                mov     ep_addr_pid,0-0         wz
+                loc     pa, #@hget_gp_in_report - @usb_host_start
+                add     pa, hcog_base_addr
+        if_nz   call    pa
+                altd    hub_curr_port,#gp_next_datax
+                mov     0-0, gp_next_datax
+                add     gp_descr_p, #HID_DESCR_LEN
+                add     gp_cur_report_p, #HID_IN_RPT_LEN
+                'add     gp_pre_report_p, #HID_IN_RPT_LEN
 
+                incmod hub_curr_port,#4 wc
+        if_nc   jmp #.hubdev_loop
+
+                sub     gp_descr_p, ##HID_DESCR_LEN * 4
+                sub     gp_cur_report_p, ##HID_IN_RPT_LEN * 4
+                'sub     gp_pre_report_p, ##HID_IN_RPT_LEN * 4
+
+.after_poll
 .nopoll
+
                 cmp     cmd_data, #CMD_SUSPEND  wz
         if_z    jmp     #hsuspend
                 cmp     cmd_data, #CMD_RESET    wz
@@ -1383,7 +1451,7 @@ hsuspend
                 ' Fall through to resume wait loop
 
 hwait_resume
-                mov     hr1, ##_CLKFREQ                 ' Use the CLKFREQ value, as the sysclock may change
+                rdlong  hr1, #CLKFREQ_PTR               ' Use the CLKFREQ value, as the sysclock may change
                 shr     hr1, #2
                 waitx   hr1                             ' Pulse the activity LED every two seconds but break
         if ACTIVITY_LED >= 0
@@ -1392,7 +1460,7 @@ hwait_resume
         end
                 cmp     cmd_data, #CMD_RESUME   wz
         if_nz   jmp     #hwait_resume
-                mov     htmp, ##_CLKFREQ                ' Check to see if the system frequency has changed
+                rdlong  htmp, #CLKFREQ_PTR              ' Check to see if the system frequency has changed
                 cmp     htmp, save_sysclk       wz
         if_z    jmp     #.resume
                 loc     pb, #@hinit_usb_timings - @usb_host_start
@@ -1480,8 +1548,8 @@ usb_host_init
                 mov     gp_descr_p, pb
                 loc     pb, #gp_cur_report
                 mov     gp_cur_report_p, pb
-                loc     pb, #gp_pre_report
-                mov     gp_pre_report_p, pb
+                'loc     pb, #gp_pre_report
+                'mov     gp_pre_report_p, pb
                 loc     pb, #hub_descr
                 mov     hub_descr_p, pb
                 loc     pb, #urx_buff
@@ -2030,6 +2098,13 @@ init_kbdm_data
 
                 mov     pa, #hdev_init_start        ' Clear device data registers
 .regloop
+
+                ' Clear EmuPad reports
+        if EMUPAD_MAX_DEV > 0
+                setq #EMUPAD_MAX_DEV - 1
+                wrlong #0,emupad_out_ptr
+        end
+
                 altd    pa
                 mov     0-0, #0
                 add     pa, #1
@@ -2255,6 +2330,7 @@ hget_gp_in_report
 ' gpPreReport buffer.
 
                 ' ----- start of block to remove
+                {
                 mov     ptra, gp_cur_report_p           ' Attempt to notify changes
                 mov     ptrb, gp_pre_report_p           ' by comparing the report bytes
 
@@ -2269,7 +2345,8 @@ hget_gp_in_report
         if_z    cmp     htmp1, htmp2    wz
                 wrbyte  htmp1, ptrb++
                 djnz    pa, #.lp
-        if_z    ret                                     ' Ignore report if not changed
+        if_z   ret                                     ' Ignore report if not changed
+        }
                 ' ----- end of block to remove
 
 '------------------------------------------------------------------------------
@@ -2585,7 +2662,7 @@ hpad_ps3
                 setnib  hidr_flags, #1, #3
                 getnib htmp, retval, #1 ' map dpad buttons to hat direction
                 mov htmp1,##$F3F4_120F
-                mov htmp2,##$FFFF_FF76
+                mov htmp2,##$FFF5_FF76
                 altgn htmp,#htmp1
                 getnib htmp
                 setbyte hidr_hats, htmp, #0
@@ -2692,6 +2769,78 @@ hpad_normalize
 '                                ++++++------------------ valid axes
 '------------------------------------------------------------------------------
 hpad_translate
+
+        if EMUPAD_MAX_DEV > 0
+              mov       retval,#0
+              mov       htmp3, hub_curr_port
+              cmpsub    htmp3, #1
+              cmp       htmp3,#EMUPAD_MAX_DEV wc
+        if_ae jmp       #.emupad_slot_over
+
+              setnib    retval,#1,#EMUPAD_TYPE_NIBBLE
+              
+              ' hat to directions
+              test      hidr_flags,##$F<<12     wz ' any hats?
+              getbyte   htmp,hidr_hats,#0
+              cmp       htmp,#8                 wc ' Valid direction ?
+   if_z_or_nc jmp       #.emupad_no_hat
+              mov       htmp1,##$0EE0_3883 ' Tingle Tingle Kooloo Limpah!
+              add       htmp,#1
+              shr       htmp1,htmp              wc
+        if_c  bith      retval,#EMUPAD_UP_BIT
+              shr       htmp1,#8                wc
+        if_c  bith      retval,#EMUPAD_DOWN_BIT
+              shr       htmp1,#8                wc
+        if_c  bith      retval,#EMUPAD_LEFT_BIT
+              shr       htmp1,#8                wc
+        if_c  bith      retval,#EMUPAD_RIGHT_BIT
+.emupad_no_hat
+              ' stick X/Y to direction
+              ' (threshold is 50% because it's easy to check)
+              mov       htmp,hidr_axis+0
+              testb     hidr_flags,#HID_AXIS_Y wc
+        if_nc setword   htmp,#0,#0
+              testb     hidr_flags,#HID_AXIS_X wc
+        if_nc setword   htmp,#0,#1
+              rczl      htmp                    wcz
+        if_10 bith      retval,#EMUPAD_UP_BIT
+        if_01 bith      retval,#EMUPAD_DOWN_BIT
+              shl       htmp,#14
+              rczl      htmp                    wcz
+        if_10 bith      retval,#EMUPAD_LEFT_BIT
+        if_01 bith      retval,#EMUPAD_RIGHT_BIT
+
+              ' Buttons (TODO)
+              testb     hidr_buttons,#0         wc
+        if_c  bith      retval,#EMUPAD_BT0_BIT
+              testb     hidr_buttons,#1         wc
+        if_c  bith      retval,#EMUPAD_BT1_BIT
+              testb     hidr_buttons,#2         wc
+        if_c  bith      retval,#EMUPAD_BT2_BIT
+              testb     hidr_buttons,#3         wc
+        if_c  bith      retval,#EMUPAD_BT3_BIT
+              testb     hidr_buttons,#4         wc
+        if_c  bith      retval,#EMUPAD_BT4_BIT
+              testb     hidr_buttons,#5         wc
+        if_c  bith      retval,#EMUPAD_BT5_BIT
+              testb     hidr_buttons,#6         wc
+        if_c  bith      retval,#EMUPAD_BT6_BIT
+              testb     hidr_buttons,#7         wc
+        if_c  bith      retval,#EMUPAD_BT7_BIT
+              testb     hidr_buttons,#8         wc
+        if_c  bith      retval,#EMUPAD_BT8_BIT
+              testb     hidr_buttons,#9         wc
+        if_c  bith      retval,#EMUPAD_BT9_BIT
+
+
+
+              altd      htmp3,#hpad_emupad_buffer
+              mov       0-0,retval
+              call      #emupad_write_reports
+.emupad_slot_over
+        end
+
+        if 1
                 mov     htmp, #0
 
                 getword htmp1, hidr_axis, #0
@@ -2731,7 +2880,37 @@ hpad_translate
 
                 debug("    btn: ", ubin_long_(hidr_buttons))
 
+        end
                 ret
+
+
+if EMUPAD_MAX_DEV > 0
+'------------------------------------------------------------------------------
+' Update EmuPad reports (all of them...)
+'------------------------------------------------------------------------------
+emupad_write_reports
+              mov       htmp,#EMUPAD_MAX_DEV
+              mov       ptra,emupad_out_ptr wz
+        if_z  ret
+              mov       htmp1,##(htmp2<<19)|(hkbd_emupad_buffer<<9)|(hpad_emupad_buffer)
+.devloop
+              ' type handling (pad overrides kbd)
+              alti      htmp1,#%100_100_100
+              muxnibs   0-0,0-0
+              getnib    htmp3,htmp2,#EMUPAD_TYPE_NIBBLE
+              ' actual bit handling.
+              alti      htmp1,#%100_111_111
+              or        0-0,0-0
+              test      htmp2,##_EMUPAD_UD_MASK wc
+        if_nc andn      htmp2,##_EMUPAD_UD_MASK
+              test      htmp2,##_EMUPAD_LR_MASK wc
+        if_nc andn      htmp2,##_EMUPAD_LR_MASK
+              setnib    htmp2,htmp3,#EMUPAD_TYPE_NIBBLE
+              wrlong    htmp2,ptra++
+        _ret_ djnz      htmp,#.devloop
+
+end
+
 
 '------------------------------------------------------------------------------
 ' Execute an IN interrupt transaction to poll for gamepad activity.
@@ -2913,6 +3092,11 @@ hub_port_handler
                 call    #control_write
                 jmp     #.done
 .disconnect
+        if EMUPAD_MAX_DEV > 0
+                cmp hub_curr_port,#EMUPAD_MAX_DEV+1 wc
+        if_b    altd    hub_curr_port,#hpad_emupad_buffer-1
+        if_b    mov     0-0,#0
+        end
                 getbyte htmp, hkbd_ep_addr, #1
                 and     htmp, #$7F
                 cmp     htmp, hub_curr_port     wz
@@ -3070,7 +3254,7 @@ kb_pre_report   byte    0[KBD_IN_RPT_LEN]
 ' Gamepad descriptor and report buffers
 gp_descr        byte    0[HID_DESCR_LEN * 4]
 gp_cur_report   byte    0[HID_IN_RPT_LEN * 4]
-gp_pre_report   byte    0[HID_IN_RPT_LEN * 4]
+'gp_pre_report   byte    0[HID_IN_RPT_LEN * 4]
 
 ' HUB descriptor
 hub_descr       byte    0   ' bDescLength
