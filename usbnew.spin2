@@ -1291,12 +1291,14 @@ hidle
                 mov     gp_cur_report_p, pb
                 loc     pb, #gp_pre_report
                 mov     gp_pre_report_p, pb
+                loc     pb, #gp_descr
+                mov     gp_descr_p, pb
 
                 mov     hdev_ready, hdev_ready + 1
-                add     gp_descr_p, #HID_DESCR_LEN
+                'add    gp_descr_p, #HID_DESCR_LEN
                 mov     gp_descr_len, gp_descr_len + 1
-                add     gp_cur_report_p, #HID_IN_RPT_LEN
-                add     gp_pre_report_p, #HID_IN_RPT_LEN
+                'add    gp_cur_report_p, #HID_IN_RPT_LEN
+                'add    gp_pre_report_p, #HID_IN_RPT_LEN
                 mov     gp_next_datax, gp_next_datax + 1
                 mov     ep_addr_pid, hpad_ep_addr + 1 wz
                 loc     pa, #@hget_gp_in_report - @usb_host_start
@@ -1340,9 +1342,9 @@ hidle
         if_nz   call    pa
                 mov     gp_next_datax + 4, gp_next_datax
 
-                sub     gp_descr_p, ##HID_DESCR_LEN * 4
-                sub     gp_cur_report_p, ##HID_IN_RPT_LEN * 4
-                sub     gp_pre_report_p, ##HID_IN_RPT_LEN * 4
+                sub     gp_descr_p, ##HID_DESCR_LEN * 3
+                sub     gp_cur_report_p, ##HID_IN_RPT_LEN * 3
+                sub     gp_pre_report_p, ##HID_IN_RPT_LEN * 3
 
 .nopoll
                 cmp     cmd_data, #CMD_SUSPEND  wz
@@ -1894,6 +1896,7 @@ hset_config
                 loc     ptra, #get_desc                 ' Get HID descriptor
                 wrword  #$ff, ptra[wLength]
                 mov     pb, hub_curr_port
+                cmpsub  pb, #1 ' use same buffer for 0 and 1
                 mul     pb, #HID_DESCR_LEN
                 add     pb, gp_descr_p
                 'mov     pb, gp_descr_p
@@ -3101,9 +3104,9 @@ kb_cur_report   byte    0[KBD_IN_RPT_LEN]
 kb_pre_report   byte    0[KBD_IN_RPT_LEN]
 
 ' Gamepad descriptor and report buffers
-gp_descr        byte    0[HID_DESCR_LEN * 5]
-gp_cur_report   byte    0[HID_IN_RPT_LEN * 5]
-gp_pre_report   byte    0[HID_IN_RPT_LEN * 5]
+gp_descr        byte    0[HID_DESCR_LEN * 4]
+gp_cur_report   byte    0[HID_IN_RPT_LEN * 4]
+gp_pre_report   byte    0[HID_IN_RPT_LEN * 4]
 
 ' HUB descriptor
 hub_descr       byte    0   ' bDescLength
