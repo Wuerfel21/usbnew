@@ -2069,6 +2069,11 @@ hget_kbd_in_report
 
                 mov     kb_max_index, hpar3             ' Save actual bytes read
                 call    #hkbd_compare
+        if EMUPAD_MAX_DEV >=0
+                setnib  hkbd_emupad_buffer+0,#1,#EMUPAD_TYPE_NIBBLE
+                call    #emupad_write_reports
+        end
+
 .led_check
                 mov     htmp, kb_led_states
                 cmp     hkbd_ledstates, htmp    wz
@@ -2166,6 +2171,30 @@ hkbd_compare
 '                 7..0 = ASCII key code (or 0 if none)
 '------------------------------------------------------------------------------
 hkbd_translate
+
+        if EMUPAD_MAX_DEV >= 0
+                cmp     hpar1,#$52 wz ' Up
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_UP_BIT
+                cmp     hpar1,#$51 wz ' Down
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_DOWN_BIT
+                cmp     hpar1,#$50 wz ' Left
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_LEFT_BIT
+                cmp     hpar1,#$4F wz ' Right
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_RIGHT_BIT
+                cmp     hpar1,#$1D wz ' Z
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT0_BIT
+                cmp     hpar1,#$1B wz ' X
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT1_BIT
+                cmp     hpar1,#$06 wz ' C
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT2_BIT
+                cmp     hpar1,#$19 wz ' V
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT3_BIT
+                cmp     hpar1,#$2A wz ' Backspace
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT8_BIT
+                cmp     hpar1,#$28 wz ' Enter
+        if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_BT9_BIT
+
+        end
                 mov     htmp, hpar1
                 shl     htmp, #1
                 test    hpar2, #KEYS_SHIFT  wz  ' SHIFT
@@ -3012,16 +3041,18 @@ hub_port_handler
                 jmp     #.done
 .disconnect
 
+                altgb   hdev_port, #hdev_type
+                getbyte htmp
+                cmp     htmp,#KB_READY wz
+        if_z    mov     hkbd_ep_addr, #0
+
         if EMUPAD_MAX_DEV > 0
+        if_z    mov     hkbd_emupad_buffer+0, #0 ' currently only 1 kb player
                 cmp     hdev_port,#EMUPAD_MAX_DEV+1 wc
         if_b    altd    hdev_port,#hpad_emupad_buffer-1
         if_b    mov     0-0,#0
                 call    #emupad_write_reports
         end
-                        
-                alts    hdev_port, #hdev_ep_addr
-                cmp     hkbd_ep_addr, hdev_ep_addr wz
-        if_z    mov     hkbd_ep_addr, #0
 
                 altsb   hdev_port, #hdev_type
                 setbyte hdev_type, #0, #0
