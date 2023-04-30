@@ -16,7 +16,7 @@ PUB main() | tmp
     debug(uhex_byte_array(tmp,padmap.RULE_SIZE))
     tmp += padmap.RULE_SIZE
 
-PRI fake_getc() : r
+PRI fake_getc(fake_arg) : r
   ifnot r:=byte[strptr++]
     strptr--
     return -1

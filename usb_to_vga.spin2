@@ -163,7 +163,7 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
 VAR
 long strptr
 
-PRI fake_getc() : r
+PRI fake_getc(fake_arg) : r
   ifnot r:=byte[strptr++]
     strptr--
     return -1
