@@ -2849,6 +2849,23 @@ emupad_getnum
               cmp       retval,#EMUPAD_MAX_DEV wc
         if_ae modz      _clr wz
               ret
+'------------------------------------------------------------------------------
+' Handle disconnect of device (call after emupad_getnum returns with Z set)
+'------------------------------------------------------------------------------
+emupad_discon
+              mov       htmp,retval
+              setd      htmp1,retval
+              sets      htmp1,retval
+              add       htmp1,##(hpad_emupad_buffer<<9)|(hpad_emupad_buffer+1)
+.loop         
+              incmod    htmp,#EMUPAD_MAX_DEV-1 wc
+        if_c  alti      htmp1,#%000_111_000
+        if_c  mov       0-0,#0
+        if_nc alti      htmp1,#%000_111_111
+        if_nc mov       0-0,0-0
+        if_nc jmp       #.loop
+        
+        ' FALL THROUGH!!!
 
 '------------------------------------------------------------------------------
 ' Update EmuPad reports (all of them...)
@@ -3060,9 +3077,7 @@ hub_port_handler
         if EMUPAD_MAX_DEV > 0
         if_z    mov     hkbd_emupad_buffer+0, #0 ' currently only 1 kb player
                 call    #emupad_getnum
-        if_z    altd    retval,#hpad_emupad_buffer-1
-        if_z    mov     0-0,#0
-                call    #emupad_write_reports
+        if_z    call    #emupad_discon
         end
 
                 altsb   hdev_port, #hdev_type
