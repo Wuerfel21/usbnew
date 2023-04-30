@@ -20,6 +20,7 @@ CON
 
 
     EMUPAD_MAX_DEV = 2 ' Set to 0 to disable EmuPad interface
+    EMUPAD_MAX_RULES = 20
     
     ' EmuPad report format config
     EMUPAD_TYPE_NIBBLE = 7
@@ -41,6 +42,7 @@ CON
     ' Computed magic values
     _EMUPAD_UD_MASK = (decod EMUPAD_UP_BIT) | (decod EMUPAD_DOWN_BIT)
     _EMUPAD_LR_MASK = (decod EMUPAD_LEFT_BIT) | (decod EMUPAD_RIGHT_BIT)
+    _EMUPAD_RULE_SIZE = 10+4+1
 
 PUB test_main()
   start()
@@ -52,8 +54,11 @@ PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_DEV > 0
     emupad_out_ptr := ptr
 
-PUB get_hid_raw_buffer() :r
-  return @hid_report
+PUB get_emupad_rules() : r
+  return @emupad_rule_buffer
+
+PUB get_keyboard_raw_buffer() :r
+  return @hkbd_report
 
 
 DAT             ' Startup for ASM only
@@ -588,7 +593,8 @@ if ERROR_LED >= 0
 host_error_led  long    ERROR_LED           ' Client defines the LED pin# to light on error
 end
 hid_descr_p     long    0, 0[4]
-hid_report_p    long    0, 0[4]
+'hid_report_p    long    0, 0[4]
+hkbd_report_p   long    0
 hub_descr_p     long    0
 urx_buff_p      long    0
 dev_desc_buff_p long    0
@@ -690,6 +696,7 @@ hdev_out_addr   long    0
 if EMUPAD_MAX_DEV > 0
 hkbd_emupad_buffer long 0[EMUPAD_MAX_DEV]
 hpad_emupad_buffer long 0[EMUPAD_MAX_DEV]
+hpad_emupad_rule   long 0,0[4] ' This is PER REAL DEVICE
 end
 
 hreg_init_end
@@ -1430,7 +1437,8 @@ usb_host_init
                 mov     hid_descr_p + 3, pb
                 add     pb, #HID_DESCR_LEN
                 mov     hid_descr_p + 4, pb
-
+        
+                {
                 loc     pb, #hid_report
                 mov     hid_report_p, pb
                 'add    pb, #HID_IN_RPT_LEN ' WE SHARE THIS
@@ -1441,6 +1449,9 @@ usb_host_init
                 mov     hid_report_p + 3, pb
                 add     pb, #HID_IN_RPT_LEN
                 mov     hid_report_p + 4, pb
+                }
+                loc     pb,#hkbd_report
+                mov     hkbd_report_p,pb
 
                 loc     pb, #hub_descr
                 mov     hub_descr_p, pb
@@ -1843,6 +1854,19 @@ hset_config
         if_nz   mov     hdev_out_addr, ep_addr_pid
                 mov     ep_addr_pid, hctrl_ep_addr      ' Restore the control ep addr for mouse configuration
 
+                if EMUPAD_MAX_DEV > 0
+                ' Find matching emupad rule
+                loc     ptra,#emupad_rule_buffer
+                mov     htmp1,#EMUPAD_MAX_RULES
+.rule_loop           
+                rdlong  htmp,ptra
+                cmp     htmp,hdev_id wz
+        if_ne   add     ptra,#_EMUPAD_RULE_SIZE
+        if_ne   djnz    htmp1,#.rule_loop
+                altd    hdev_port,#hpad_emupad_rule
+                mov     0-0,ptra
+                end
+
                 cmp     hdev_class, #$FF        wz      ' XInput vendor class
         if_e    jmp     #.xinput
                 cmp     hdev_id, ##$054C_0268   wz      ' PS3 vendor/product
@@ -2060,7 +2084,7 @@ hget_kbd_in_report
 
                 mov     kb_max_index, hpar3             ' Save actual bytes read
                 call    #hkbd_compare
-        if EMUPAD_MAX_DEV >=0
+        if EMUPAD_MAX_DEV > 0
                 setnib  hkbd_emupad_buffer+0,#1,#EMUPAD_TYPE_NIBBLE
                 call    #emupad_write_reports
         end
@@ -2081,8 +2105,7 @@ hget_kbd_in_report
 '------------------------------------------------------------------------------
 hkbd_compare
                 mov     ptra, urx_buff_p
-                alts    hdev_port, #hid_report_p
-                mov     ptrb, 0-0
+                mov     ptrb, hkbd_report_p
                 rdlong  htmp1, ptra++
                 rdlong  htmp2, ptrb++
                 cmp     htmp1, htmp2    wz
@@ -2091,8 +2114,7 @@ hkbd_compare
         if_z    cmp     htmp1, htmp2    wz
         if_z    ret
 
-                alts    hdev_port, #hid_report_p
-                mov     ptra, 0-0
+                mov     ptra, hkbd_report_p
 
                 mov     hpar1, #0
                 rdbyte  hpar2, urx_buff_p
@@ -2127,8 +2149,7 @@ hkbd_compare
                 mov     pa, #6
 .pl1            rdbyte  hpar1, ptra++   wz
         if_z    jmp     #.pl3
-                alts    hdev_port, #hid_report_p
-                mov     ptrb, 0-0
+                mov     ptrb, hkbd_report_p
                 add     ptrb, #2
                 mov     pb, #6
 .pl2            rdbyte  htmp, ptrb++
@@ -2139,8 +2160,7 @@ hkbd_compare
 .pl3            djnz    pa, #.pl1
 
 .copy           mov     ptra, urx_buff_p
-                alts    hdev_port, #hid_report_p
-                mov     ptrb, 0-0
+                mov     ptrb, hkbd_report_p
                 rdlong  htmp, ptra++
                 wrlong  htmp, ptrb++
                 rdlong  htmp, ptra++
@@ -2163,7 +2183,7 @@ hkbd_compare
 '------------------------------------------------------------------------------
 hkbd_translate
 
-        if EMUPAD_MAX_DEV >= 0
+        if EMUPAD_MAX_DEV > 0
                 cmp     hpar1,#$52 wz ' Up
         if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_UP_BIT
                 cmp     hpar1,#$51 wz ' Down
@@ -2741,29 +2761,72 @@ hpad_translate
         if_10 bith      retval,#EMUPAD_LEFT_BIT
         if_01 bith      retval,#EMUPAD_RIGHT_BIT
 
-              ' Buttons (TODO)
-              testb     hidr_buttons,#0         wc
+              ' Buttons
+              alts      hdev_port,#hpad_emupad_rule
+              mov       ptra,0-0
+              add       ptra,#5
+
+        ' A kingdom for a macro assembler...
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT0_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT0_BIT
-              testb     hidr_buttons,#1         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT1_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT1_BIT
-              testb     hidr_buttons,#2         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT2_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT2_BIT
-              testb     hidr_buttons,#3         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT3_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT3_BIT
-              testb     hidr_buttons,#4         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT4_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT4_BIT
-              testb     hidr_buttons,#5         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT5_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT5_BIT
-              testb     hidr_buttons,#6         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT6_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT6_BIT
-              testb     hidr_buttons,#7         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT7_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT7_BIT
-              testb     hidr_buttons,#8         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT8_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT8_BIT
-              testb     hidr_buttons,#9         wc
+        end
+              rdbyte    htmp,ptra++
+        if EMUPAD_BT9_BIT > 0
+              cmpsub    htmp,#1 wc
+              testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT9_BIT
-
-
+        end
 
               altd      htmp3,#hpad_emupad_buffer
               mov       0-0,retval
@@ -3212,6 +3275,15 @@ xinp_rumble_cmd byte    $00, $08, $00
                 byte    $00             ' Right rumble
                 byte    $00, $00, $00
 
+
+if EMUPAD_MAX_DEV > 0
+
+emupad_rule_buffer
+byte 0[EMUPAD_MAX_RULES * _EMUPAD_RULE_SIZE]
+'' Default rule directly follows!
+byte long -1, 255, 1,2,3,4,5,6,7,8,9,10
+end
+
 '------------------------------------------------------------------------------
 ' The USB data cache area gets zero-filled at every device disconnect
 '------------------------------------------------------------------------------
@@ -3219,7 +3291,8 @@ usb_cache_start
 
 ' HID descriptor and report buffers
 hid_descr       byte    0[HID_DESCR_LEN * 4]
-hid_report      byte    0[HID_IN_RPT_LEN * 4]
+'hid_report      byte    0[HID_IN_RPT_LEN * 4]
+hkbd_report     byte    0[8]
 
 ' HUB descriptor
 hub_descr       byte    0   ' bDescLength

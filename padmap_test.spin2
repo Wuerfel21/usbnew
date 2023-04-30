@@ -1,0 +1,39 @@
+CON
+  _CLKFREQ = 200_000_000
+
+  CAPACITY = 16
+OBJ
+  padmap : "padmap_parser"
+
+VAR
+  long strptr
+
+PUB main() | tmp
+  strptr := @test_string
+  padmap.parse(@test_buffer,CAPACITY,@fake_getc,0,@"padmap_test")
+  tmp := @test_buffer
+  repeat CAPACITY
+    debug(uhex_byte_array(tmp,padmap.RULE_SIZE))
+    tmp += padmap.RULE_SIZE
+
+PRI fake_getc() : r
+  ifnot r:=byte[strptr++]
+    strptr--
+    return -1
+
+
+DAT
+test_buffer byte 0[padmap.RULE_SIZE*CAPACITY]
+
+test_string
+byte "# test comment",10
+byte "wrongapp sdhfsdhfwhfgjksdjkgnjkgnhjkdbsgjkdbngkj",10
+byte "* 01234567 1 2 3 4 5 6 7 8 9 10",10,13
+byte "padmap_test AAAABBBB 10 11 12 13 # comment",10
+byte "# Application  PID+VID   N  E  S  W L1 R1 L2 R2 Sl St",10
+byte 10,13
+byte "      *       0E6F1112   4  1  2  3  0  0  0  0  9 10 # NeoGeo mini",10,13
+byte "      *       1C590026   1  2  3  4  5  6  0  0  7  8 # THE GAMEPAD",10,13
+byte " padmap_test  0F0D00C1   1  8  2  3  4  7  0  0  9 10 # RetroBit 6-button controller",10,13
+byte "* CCCCCCCC # empty rule",10
+byte 0

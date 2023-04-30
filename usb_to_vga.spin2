@@ -8,6 +8,7 @@ _CLKFREQ = 252_000_000
 OBJ
 text: "p2textdrv"
 usb: "usbnew" | EMUPAD_MAX_DEV = 4
+padmap: "padmap_parser"
 
 VAR
 long emupad[usb.EMUPAD_MAX_DEV]
@@ -23,17 +24,22 @@ usb.start()
 
 text.printStr(@"USB HID test")
 
+
+strptr := @test_padmap
+padmap.parse(usb.get_emupad_rules(),usb.EMUPAD_MAX_RULES,@fake_getc,0,@"padmap_test")
+text.setTextPos(22,0)
+tmp := usb.get_emupad_rules()
+repeat 4
+  printraw(@" ",tmp,usb._EMUPAD_RULE_SIZE)
+  tmp += usb._EMUPAD_RULE_SIZE
+
 repeat
   text.setTextPos(1,0)
-  printraw(@"Raw 1: ",usb.get_hid_raw_buffer()+0*usb.HID_IN_RPT_LEN,32)
-  printraw(@"Raw 2: ",usb.get_hid_raw_buffer()+1*usb.HID_IN_RPT_LEN,32)
-  printraw(@"Raw 3: ",usb.get_hid_raw_buffer()+2*usb.HID_IN_RPT_LEN,32)
-  printraw(@"Raw 4: ",usb.get_hid_raw_buffer()+3*usb.HID_IN_RPT_LEN,32)
-  text.nl()
-  printraw(@"EmuPad 1 : ",@emupad[0],4)
-  printraw(@"EmuPad 2 : ",@emupad[1],4)
-  printraw(@"EmuPad 3 : ",@emupad[2],4)
-  printraw(@"EmuPad 4 : ",@emupad[3],4)
+  printraw(@"Raw Keyboard: ",usb.get_keyboard_raw_buffer(),8)
+  print_emupad(2,0,1,emupad[0])
+  print_emupad(2,40,2,emupad[1])
+  print_emupad(12,0,3,emupad[2])
+  print_emupad(12,40,4,emupad[3])
 
 PRI printraw(name,ptr,size)
   text.printStr(name)
@@ -42,7 +48,136 @@ PRI printraw(name,ptr,size)
     text.tx(" ")
   text.nl()
 
-    
+PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
+  type := data.[(usb.EMUPAD_TYPE_NIBBLE*4) addbits 3]
+  if type
+    text_fg := $F
+  else
+    text_fg := $8
+  text.setTextPos(y,x)
+  text.setTextColours(text_fg,$1)
+  text.printStr(@"EmuPad ")
+  text.dec(num)
+  text.printStr(@", type ")
+  text.dec(type)
+  text.printStr(@" -- ")
+  text.hex(data,8)
+  ' lower shoulders
+  text.setTextPos(y+1,x)
+  repeat 3
+    text.tx(" ")
+  text.tx("(")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT6_BIT]?$4:$1)
+  text.printStr(@"b6")
+  text.setTextColours(text_fg,$1)
+  text.tx(")")
+  repeat 12
+    text.tx(" ")
+  text.tx("(")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT7_BIT]?$4:$1)
+  text.printStr(@"b7")
+  text.setTextColours(text_fg,$1)
+  text.tx(")")
+  ' upper shoulders
+  text.setTextPos(y+2,x)
+  repeat 3
+    text.tx(" ")
+  text.tx("(")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT4_BIT]?$4:$1)
+  text.printStr(@"b4")
+  text.setTextColours(text_fg,$1)
+  text.tx(")")
+  repeat 12
+    text.tx(" ")
+  text.tx("(")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT5_BIT]?$4:$1)
+  text.printStr(@"b5")
+  text.setTextColours(text_fg,$1)
+  text.tx(")")
+  ' Decor
+  text.setTextPos(y+3,x)
+  text.printStr(@"  /--------------------\")
+  ' Up/North
+  text.setTextPos(y+4,x)
+  text.printStr(@" /   ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_UP_BIT]?$4:$1)
+  text.printStr(@"Up")
+  text.setTextColours(text_fg,$1)
+  repeat 13
+    text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT0_BIT]?$4:$1)
+  text.printStr(@"b0")
+  text.setTextColours(text_fg,$1)
+  text.printStr(@"  \")
+  ' Left/Right/Select/Start/West/East
+  text.setTextPos(y+5,x)
+  text.tx(" ")
+  text.tx("|")
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_LEFT_BIT]?$4:$1)
+  text.printStr(@"Lf")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_RIGHT_BIT]?$4:$1)
+  text.printStr(@"Rg")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT8_BIT]?$4:$1)
+  text.printStr(@"b8")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT9_BIT]?$4:$1)
+  text.printStr(@"b9")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT3_BIT]?$4:$1)
+  text.printStr(@"b3")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT1_BIT]?$4:$1)
+  text.printStr(@"b1")
+  text.setTextColours(text_fg,$1)
+  text.tx(" ")
+  text.tx("|")
+  ' Down/South
+  text.setTextPos(y+6,x)
+  text.printStr(@" \   ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_DOWN_BIT]?$4:$1)
+  text.printStr(@"Dn")
+  text.setTextColours(text_fg,$1)
+  repeat 13
+    text.tx(" ")
+  text.setTextColours(text_fg,data.[usb.EMUPAD_BT2_BIT]?$4:$1)
+  text.printStr(@"b2")
+  text.setTextColours(text_fg,$1)
+  text.printStr(@"  /")
+  ' Decor
+  text.setTextPos(y+7,x)
+  text.printStr(@"  \--------------------/")
+  text.setTextColours($F,$1)
+
+VAR
+long strptr
+
+PRI fake_getc() : r
+  ifnot r:=byte[strptr++]
+    strptr--
+    return -1
+
+DAT
+test_padmap
+byte "# test comment",10
+byte "      *       1C590026   1  2  3  4  5  6  0  0  7  8 # THE GAMEPAD",10
+byte "* CCCCCCCC # empty rule",10
+byte 0
+
+
+
+
 
 
 
