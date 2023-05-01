@@ -71,7 +71,7 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
   text.printStr(@"b6")
   text.setTextColours(text_fg,$1)
   text.tx(")")
-  repeat 12
+  repeat 13
     text.tx(" ")
   text.tx("(")
   text.setTextColours(text_fg,data.[usb.EMUPAD_BT7_BIT]?$4:$1)
@@ -87,7 +87,7 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
   text.printStr(@"b4")
   text.setTextColours(text_fg,$1)
   text.tx(")")
-  repeat 12
+  repeat 13
     text.tx(" ")
   text.tx("(")
   text.setTextColours(text_fg,data.[usb.EMUPAD_BT5_BIT]?$4:$1)
@@ -96,7 +96,7 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
   text.tx(")")
   ' Decor
   text.setTextPos(y+3,x)
-  text.printStr(@"  /--------------------\")
+  text.printStr(@"  /---------------------\")
   ' Up/North
   text.setTextPos(y+4,x)
   text.printStr(@" /   ")
@@ -108,7 +108,7 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
   text.setTextColours(text_fg,data.[usb.EMUPAD_BT0_BIT]?$4:$1)
   text.printStr(@"b0")
   text.setTextColours(text_fg,$1)
-  text.printStr(@"  \")
+  text.printStr(@"   \")
   ' Left/Right/Select/Start/West/East
   text.setTextPos(y+5,x)
   text.tx(" ")
@@ -154,10 +154,10 @@ PRI print_emupad(y,x,num,data) | active_clr,text_fg, type
   text.setTextColours(text_fg,data.[usb.EMUPAD_BT2_BIT]?$4:$1)
   text.printStr(@"b2")
   text.setTextColours(text_fg,$1)
-  text.printStr(@"  /")
+  text.printStr(@"   /")
   ' Decor
   text.setTextPos(y+7,x)
-  text.printStr(@"  \--------------------/")
+  text.printStr(@"  \---------------------/")
   text.setTextColours($F,$1)
 
 VAR

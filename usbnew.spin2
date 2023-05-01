@@ -46,9 +46,9 @@ CON
     EMUPAD_KB_LEFT  = KEY_LEFT
     EMUPAD_KB_RIGHT = KEY_RIGHT
     EMUPAD_KB_BT0   = KEY_D
-    EMUPAD_KB_BT1   = KEY_X
+    EMUPAD_KB_BT1   = KEY_V
     EMUPAD_KB_BT2   = KEY_C
-    EMUPAD_KB_BT3   = KEY_V
+    EMUPAD_KB_BT3   = KEY_X
     EMUPAD_KB_BT4   = KEY_F
     EMUPAD_KB_BT5   = KEY_G
     EMUPAD_KB_BT6   = KEY_T
@@ -2084,11 +2084,8 @@ hget_kbd_in_report
                 setword hpar3, kb_in_max_pkt, #1        ' Always ask for max report size
                 call    #do_int_in
                 cmp     retval, #PID_ACK        wz
-        if_z    jmp     #.data
-                cmp     retval, #PID_NAK        wz
-        if_nz   jmp     #host_error                     ' Something other than ACK/NAK, so likely fatal
-                ret                                     ' No auto-repeat action
-.data
+        if_nz   ret                                     ' No ACK, ignore
+
                 cmp     hpar3, #0               wz
         if_z    ret                                     ' Ignore an empty DATAx packet
 
@@ -2300,11 +2297,8 @@ hget_gp_in_report
                 setword hpar3, #255, #1                 ' Always ask for max report size
                 call    #do_int_in
                 cmp     retval, #PID_ACK        wz
-        if_z    jmp     #.data
-                cmp     retval, #PID_NAK        wz
-        if_nz   jmp     #host_error                     ' Something other than ACK/NAK, so likely fatal
-                ret
-.data
+        if_nz   ret                                     ' No ACK, ignore
+
                 cmp     hpar3, #0               wz
         if_z    ret                                     ' Ignore an empty DATAx packet
 
