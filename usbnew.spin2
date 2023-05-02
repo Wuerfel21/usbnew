@@ -18,8 +18,11 @@ CON
     ACTIVITY_LED  = 57
     ERROR_LED     = 56
 
+    HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
+    HIDPAD_REPORT_SIZE = 7*4 ' do not change!
+    HIDPAD_DEVICES = 4 ' do not change!
 
-    EMUPAD_MAX_DEV = 2 ' Set to 0 to disable EmuPad interface
+    EMUPAD_MAX_DEV = 0 ' Set to 0 to disable EmuPad interface
     EMUPAD_MAX_RULES = 20
     
     ' EmuPad report format config
@@ -83,7 +86,6 @@ PUB keystate(key) : r | tmp
         return true
     return false
 
-
 PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_DEV > 0
     emupad_out_ptr := ptr
@@ -94,6 +96,47 @@ PUB get_emupad_rules() : r
 PUB get_keyboard_raw_buffer() :r
   return @hkbd_report
 
+PUB get_hidpad_buffer() : r
+  return @hidpad_report
+
+'' Get VID/PID pair for connected device. 0 means disconnected
+PUB hidpad_id(dev) : r
+  return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][0]
+
+'' Get device caps. These are often false-positive
+'' (i.e. axis marked as valid, but not physically extant on device)
+'' xxxxxxxx_xxrrrzyx_hhhhaaaa_bbbbbbbb
+''            zyx||| |||||||| ++++++++ n. buttons
+''            |||||| ||||++++--------- n. axes
+''            |||||| ++++------------- n. hats
+''            ++++++------------------ valid axes
+PUB hidpad_getcaps(dev) : r
+  return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][1]
+
+'' Get all buttons for a device
+PUB hidpad_buttons(dev) :r
+  return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][5]
+
+'' Get one button
+PUB hidpad_button(dev,bnum)
+  if bnum +>= 32
+    return false
+  else
+    return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][5].[bnum]
+
+''
+PUB hidpad_axis(dev,axnum)
+  if axnum +>= 6
+    return 0
+  else 
+    return word[@hidpad_report+dev*HIDPAD_REPORT_SIZE][4+axnum] signx 15
+
+''
+PUB hidpad_hat(dev,hatnum)
+  if hatnum +>= 4
+    return 0
+  else 
+    return byte[@hidpad_report+dev*HIDPAD_REPORT_SIZE][6*4+hatnum]
 
 DAT             ' Startup for ASM only
                 {
@@ -628,7 +671,7 @@ host_error_led  long    ERROR_LED           ' Client defines the LED pin# to lig
 end
 hid_descr_p     long    0, 0[4]
 'hid_report_p    long    0, 0[4]
-hkbd_report_p   long    0
+'hkbd_report_p   long    0
 hub_descr_p     long    0
 urx_buff_p      long    0
 dev_desc_buff_p long    0
@@ -655,16 +698,17 @@ gp_descr_len    long    0, 0[4]
 hdev_init_end
 
 hidr_start
-hidr_id         long    0
+hidr_usage      long    0 ' <- can get trashed after parsing
+hidr_flags      long    0
 hidr_axis       long    0[3]
 hidr_buttons    long    0
 hidr_hats       long    0
-hidr_flags      long    0
+'' Above are actually useful values, 6 longs
+hidr_id         long    0
 hidr_state      long    0
 hidr_size       long    0
 hidr_count      long    0
 hidr_offset     long    0
-hidr_usage      long    0
 hidr_usage_idx  long    0
 hidr_lminmax    long    0
 hidr_pminmax    long    0
@@ -1238,6 +1282,12 @@ discon_entry
                 mov     mod_cnt, #3                     ' Make the first heartbeat pulse a short one
 
               
+        if HAVE_HIDPAD
+                loc     pb, #@hidpad_report - @usb_host_start
+                add     pb, hcog_base_addr
+                setq    #(HIDPAD_REPORT_SIZE/4)*4 - 1
+                wrlong  #0,pb
+        end
         if EMUPAD_MAX_DEV > 0
                 loc     pb, #@emupad_reset - @usb_host_start
                 add     pb, hcog_base_addr
@@ -1484,8 +1534,8 @@ usb_host_init
                 add     pb, #HID_IN_RPT_LEN
                 mov     hid_report_p + 4, pb
                 }
-                loc     pb,#hkbd_report
-                mov     hkbd_report_p,pb
+                'loc     pb,#hkbd_report
+                'mov     hkbd_report_p,pb
 
                 loc     pb, #hub_descr
                 mov     hub_descr_p, pb
@@ -1905,8 +1955,9 @@ hset_config
 
                 cmp     hdev_class, #$FF        wz      ' XInput vendor class
         if_e    jmp     #.xinput
-                altd    hdev_port,#hdev_id
-                cmp     0-0, ##$054C_0268       wz      ' PS3 vendor/product
+                alts    hdev_port,#hdev_id
+                mov     htmp,0-0
+                cmp     htmp, ##$054C_0268       wz      ' PS3 vendor/product
         if_e    jmp     #.ps3
 
                 loc     ptra, #get_desc                 ' Get HID descriptor
@@ -2139,7 +2190,7 @@ hget_kbd_in_report
 '------------------------------------------------------------------------------
 hkbd_compare
                 mov     ptra, urx_buff_p
-                mov     ptrb, hkbd_report_p
+                loc     ptrb, #hkbd_report
                 rdlong  htmp1, ptra++
                 rdlong  htmp2, ptrb++
                 cmp     htmp1, htmp2    wz
@@ -2148,7 +2199,7 @@ hkbd_compare
         if_z    cmp     htmp1, htmp2    wz
         if_z    ret
 
-                mov     ptra, hkbd_report_p
+                loc     ptra, #hkbd_report
 
                 mov     hpar1, #0
                 rdbyte  hpar2, urx_buff_p
@@ -2183,7 +2234,7 @@ hkbd_compare
                 mov     pa, #6
 .pl1            rdbyte  hpar1, ptra++   wz
         if_z    jmp     #.pl3
-                mov     ptrb, hkbd_report_p
+                loc     ptrb, #hkbd_report
                 add     ptrb, #2
                 mov     pb, #6
 .pl2            rdbyte  htmp, ptrb++
@@ -2194,7 +2245,7 @@ hkbd_compare
 .pl3            djnz    pa, #.pl1
 
 .copy           mov     ptra, urx_buff_p
-                mov     ptrb, hkbd_report_p
+                loc     ptrb, #hkbd_report
                 rdlong  htmp, ptra++
                 wrlong  htmp, ptrb++
                 rdlong  htmp, ptra++
@@ -2646,6 +2697,7 @@ hpad_ps3
                 mov     hpar2, #19
                 call    #hpad_getbits
 
+                setbyte hidr_flags,#13,#0
                 testb   retval, #12     wc  ' A
                 bitc    hidr_buttons, #0
                 testb   retval, #13     wc  ' B
@@ -2782,6 +2834,18 @@ hpad_normalize
 '------------------------------------------------------------------------------
 hpad_translate
 
+        if HAVE_HIDPAD
+              loc ptrb,#hidpad_report
+              mov htmp,hdev_port
+              cmpsub htmp,#1
+              mul htmp,#HIDPAD_REPORT_SIZE
+              add ptrb,htmp
+              alts hdev_port,#hdev_id
+              mov hidr_usage,0-0 ' We can trash hidr_usage with the ID so we can do one atomic block write
+              setq #7-1
+              wrlong hidr_usage,ptrb
+        end
+
         if EMUPAD_MAX_DEV > 0
               call      #emupad_getnum
         if_nz jmp       #.emupad_slot_over
@@ -2894,7 +2958,7 @@ hpad_translate
 .emupad_slot_over
         end
 
-        if 1
+        if 0
                 mov     htmp, #0
 
                 getword htmp1, hidr_axis, #0
@@ -3202,6 +3266,15 @@ hub_port_handler
                 call    #emupad_getnum
         if_z    call    #emupad_discon
         end
+        if HAVE_HIDPAD
+                loc ptrb,#hidpad_report
+                mov htmp,hdev_port
+                cmpsub htmp,#1
+                mul htmp,#HIDPAD_REPORT_SIZE
+                add ptrb,htmp
+                setq #(HIDPAD_REPORT_SIZE)/4 - 1
+                wrlong #0,ptrb
+        end
 
                 altsb   hdev_port, #hdev_type
                 setbyte #0
@@ -3353,6 +3426,10 @@ usb_cache_start
 hid_descr       byte    0[HID_DESCR_LEN * 4]
 'hid_report      byte    0[HID_IN_RPT_LEN * 4]
 hkbd_report     byte    0[8]
+
+if HAVE_HIDPAD
+hidpad_report   byte    0[4*HIDPAD_REPORT_SIZE]
+end
 
 ' HUB descriptor
 hub_descr       byte    0   ' bDescLength

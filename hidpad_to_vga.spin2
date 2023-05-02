@@ -1,0 +1,130 @@
+CON
+_CLKFREQ = 252_000_000
+
+  vgaBase =  32
+  vgaVsync = vgaBase + 4
+
+
+OBJ
+text: "p2textdrv"
+usb: "usbnew" | HAVE_HIDPAD = true
+
+VAR
+
+PUB main() | tmp
+
+text.initVga(-1,vgaBase,vgaVsync,0,text.VGA)
+text.setTextColours($F,$1)
+text.clear()
+usb.start()
+
+text.printStr(@"USB HID test")
+
+
+repeat
+  text.setTextPos(1,0)
+  printraw(@"Raw Keyboard: ",usb.get_keyboard_raw_buffer(),8)
+  'text.nl()
+  print_hidpad(0)
+  text.nl()
+  print_hidpad(1)
+  text.nl()
+  print_hidpad(2)
+  text.nl()
+  print_hidpad(3)
+  text.nl()
+
+PRI printraw(name,ptr,size)
+  text.printStr(name)
+  repeat size
+    text.hex(byte[ptr++],2)
+    text.tx(" ")
+  text.nl()
+
+PRI feik_tab(size) | col
+  repeat
+    text.txRaw(" ")
+    _,col := text.getTextPos()
+    ifnot col//size
+      quit
+
+PRI print_hidpad(num) | id, caps, i
+  id := usb.hidpad_id(num)
+  caps := usb.hidpad_getcaps(num)
+  text.setTextColours(id ? $F : $8,$1)
+  text.printStr(@"HIDpad ")
+  text.dec(num)
+  text.printStr(@" : ID ")
+  text.hex(id,8)
+  text.printStr(@" -- ")
+  text.dec(caps.[7..0])
+  text.printStr(@" buttons, ")
+  text.dec(caps.[11..8])
+  text.printStr(@" axes, ")
+  text.dec(caps.[15..12])
+  text.printStr(@" hats.")
+  text.nl()
+  feik_tab(8)
+  text.printStr(@"Buttons: ")
+  text.bin(usb.hidpad_buttons(num),caps.[7..0])
+  text.nl()
+  feik_tab(12)
+  text.printStr(@"X : ")
+  if caps.[16]
+    text.dec(usb.hidpad_axis(num,0))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12)
+  text.printStr(@"Y : ")
+  if caps.[17]
+    text.dec(usb.hidpad_axis(num,1))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12)
+  text.printStr(@"Z : ")
+  if caps.[18]
+    text.dec(usb.hidpad_axis(num,2))
+  else
+    text.printStr(@"N/A")
+  text.nl()
+  feik_tab(12)
+  text.printStr(@"RX: ")
+  if caps.[19]
+    text.dec(usb.hidpad_axis(num,3))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12)
+  text.printStr(@"RY: ")
+  if caps.[20]
+    text.dec(usb.hidpad_axis(num,4))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12)
+  text.printStr(@"RZ: ")
+  if caps.[21]
+    text.dec(usb.hidpad_axis(num,5))
+  else
+    text.printStr(@"N/A")
+  text.nl()
+  feik_tab(8)
+  text.printStr(@"Hats: ")
+  if caps.[15..12]
+    repeat i from 0 to caps.[15..12]-1
+      text.hex(usb.hidpad_hat(num,i),2)
+      text.tx(" ")
+
+
+  
+  text.nl()
+  text.setTextColours($F,$1)
+
+
+
+
+
+
+
+
+
+
+
