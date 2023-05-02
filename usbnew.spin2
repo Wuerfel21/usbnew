@@ -705,7 +705,7 @@ ep_addr_pid     long    0         ' Endpoint and device addresses for connected 
 retval          long    0         ' Global success/fail return parameter
 context_retval  long    0         ' Operation contextual return parameter
 ' Device stuff
-hdev_id         long    0
+hdev_id         long    0, 0[4]
 hdev_bcd        long    0
 hdev_type       long    0, 0      ' Configured device indicator
 ' Keyboard/mouse stuff
@@ -1658,11 +1658,11 @@ hinit_usb_timings
 '------------------------------------------------------------------------------
 hparse_con_desc
                 mov     ptrb, dev_desc_buff_p
-                rdword  htmp, ptrb[4]       ' idVendor
-                rdword  hdev_id, ptrb[5]    ' idProduct
-                setword hdev_id, htmp, #1
+                rdlong  htmp,ptrb[2] ' idVendor and idProduct
+                altr    hdev_port,#hdev_id
+                movbyts htmp,#%%1032
                 rdword  hdev_bcd, ptrb[6]   ' bcdDevice
-                debug(uhex_long(hdev_id), uhex_word(hdev_bcd))
+                debug(udec(hdev_port),uhex_reg_array(#hdev_id,#5), uhex_word(hdev_bcd))
 
                 mov     pa, #CON_wTotalLen
                 add     pa, hconfig_base
@@ -1892,9 +1892,11 @@ hset_config
                 ' Find matching emupad rule
                 loc     ptra,#emupad_rule_buffer
                 mov     htmp1,#EMUPAD_MAX_RULES
+                
 .rule_loop           
                 rdlong  htmp,ptra
-                cmp     htmp,hdev_id wz
+                alts    hdev_port,#hdev_id
+                cmp     htmp,0-0 wz
         if_ne   add     ptra,#_EMUPAD_RULE_SIZE
         if_ne   djnz    htmp1,#.rule_loop
                 altd    hdev_port,#hpad_emupad_rule
@@ -1903,7 +1905,8 @@ hset_config
 
                 cmp     hdev_class, #$FF        wz      ' XInput vendor class
         if_e    jmp     #.xinput
-                cmp     hdev_id, ##$054C_0268   wz      ' PS3 vendor/product
+                altd    hdev_port,#hdev_id
+                cmp     0-0, ##$054C_0268       wz      ' PS3 vendor/product
         if_e    jmp     #.ps3
 
                 loc     ptra, #get_desc                 ' Get HID descriptor
