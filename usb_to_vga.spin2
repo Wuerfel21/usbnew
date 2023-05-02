@@ -29,7 +29,7 @@ strptr := @test_padmap
 padmap.parse(usb.get_emupad_rules(),usb.EMUPAD_MAX_RULES,@fake_getc,0,@"padmap_test")
 text.setTextPos(22,0)
 tmp := usb.get_emupad_rules()
-repeat 4
+repeat 6
   printraw(@" ",tmp,usb._EMUPAD_RULE_SIZE)
   tmp += usb._EMUPAD_RULE_SIZE
 
@@ -172,6 +172,7 @@ DAT
 test_padmap
 byte "# test comment",10
 byte "      *       1C590026   1  2  3  4  5  6  0  0  7  8 # THE GAMEPAD",10
+byte "      *       20D6A713   4  3  2  1  5  6  7  8  9  10 # PowerA Switch controller",10
 byte "* CCCCCCCC # empty rule",10
 byte 0
 

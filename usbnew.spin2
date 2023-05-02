@@ -68,6 +68,22 @@ PUB test_main()
 PUB start() : r
   return coginit(COGEXEC_NEW,@usb_host_start,0)
 
+PUB set_basepin(pin)
+  usb_event_pin := pin
+  dm := pin+2
+  dp := pin+3
+
+PUB keystate(key) : r | tmp
+  if key >= $E0 && key < $E8
+    return not not (hkbd_report.byte[0] >> (key-$E0))
+  else
+    tmp := @hkbd_report + 2
+    repeat 6
+      if byte[tmp++] == key
+        return true
+    return false
+
+
 PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_DEV > 0
     emupad_out_ptr := ptr
