@@ -30,7 +30,7 @@ byte "# test comment",10
 byte "wrongapp sdhfsdhfwhfgjksdjkgnjkgnhjkdbsgjkdbngkj",10
 byte "* 01234567 1 2 3 4 5 6 7 8 9 10",10,13
 byte "padmap_test AAAABBBB 10 11 12 13 # comment",10
-byte "# Application  PID+VID   N  E  S  W L1 R1 L2 R2 Sl St",10
+byte "# Application  VID+PID   N  E  S  W L1 R1 L2 R2 Sl St",10
 byte 10,13
 byte "      *       0E6F1112   4  1  2  3  0  0  0  0  9 10 # NeoGeo mini",10,13
 byte "      *       1C590026   1  2  3  4  5  6  0  0  7  8 # THE GAMEPAD",10,13
