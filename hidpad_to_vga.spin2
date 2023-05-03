@@ -6,7 +6,7 @@ _CLKFREQ = 252_000_000
 
 
 OBJ
-text: "p2textdrv"
+text: "vga/p2textdrv"
 usb: "usbnew" | HAVE_HIDPAD = true
 
 VAR
