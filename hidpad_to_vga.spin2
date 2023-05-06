@@ -7,7 +7,7 @@ _CLKFREQ = 252_000_000
 
 OBJ
 text: "vga/p2textdrv"
-usb: "usbnew" | HAVE_HIDPAD = true
+usb: "usbnew" | HAVE_HIDPAD = true, HAVE_MOUSE = true
 
 VAR
 
@@ -17,6 +17,10 @@ text.initVga(-1,vgaBase,vgaVsync,0,text.VGA)
 text.setTextColours($F,$1)
 text.clear()
 usb.start()
+usb.mouse_set_limits(640-1,480-1)
+'usb.mouse_set_outptr(text.getDisplay() + 7*4)
+byte[text.getRegion()][5] |= 128 ' enable mouse cursor (in awful way)
+long[text.getRegion()][9] := $FF000000
 
 text.printStr(@"USB HID test")
 
@@ -24,7 +28,7 @@ text.printStr(@"USB HID test")
 repeat
   text.setTextPos(1,0)
   printraw(@"Raw Keyboard: ",usb.get_keyboard_raw_buffer(),8)
-  'text.nl()
+  print_mouse()
   print_hidpad(0)
   text.nl()
   print_hidpad(1)
@@ -47,6 +51,23 @@ PRI feik_tab(size) | col
     _,col := text.getTextPos()
     ifnot col//size
       quit
+
+PRI print_mouse | x,y,z
+  x,y,z := usb.mouse_xyz()
+  text.printStr(@"Mouse:")
+  text.bin(usb.mouse_buttons(),3)
+  feik_tab(12)
+  text.printStr(@"X: ")
+  text.dec(x)
+  feik_tab(12)
+  text.printStr(@"Y: ")
+  text.dec(y)
+  feik_tab(12)
+  text.printStr(@"Z: ")
+  text.dec(z)
+
+  text.nl()
+
 
 PRI print_hidpad(num) | id, caps, i
   id := usb.hidpad_id(num)

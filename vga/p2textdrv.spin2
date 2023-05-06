@@ -363,7 +363,10 @@ PRI init(cog, basePin, vsyncPin, output, flags, timing) : id | displayFlags
   video.initTextOutput(@context, @display, @region, FOREGROUND, BACKGROUND, 1, 1)   'also erase region
 
 ' ----------------------------------------------------------------------------
-
+PUB getDisplay() : r
+  return @display
+PUB getRegion() : r
+  return @region
 DAT
         orgh
 ' a default VGA palette
