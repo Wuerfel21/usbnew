@@ -703,7 +703,7 @@ hub_intf_num    long    0
 hub_next_datax  long    0
 hub_status_chg  long    0
 hub_port_status long    0
-if HAVE_MOUSE||1
+if HAVE_MOUSE
 ms_intf_num     long    0
 ms_in_max_pkt   long    0
 end
@@ -787,7 +787,7 @@ hnext_desc      long    0         ' Offset from the config descriptor start addr
 hhub_ctrl_ep    long    0         ' Hub control endpoint address
 hhub_ep_addr    long    0         ' Hub interface endpoint address
 hkbd_ep_addr    long    0         ' Keyboard interface endpoint address
-if HAVE_MOUSE||1
+if HAVE_MOUSE
 hmouse_ep_addr  long 0 ' Mouse interface endpoint address
 end
 hkbd_poll_cnt   long    0         ' Poll interval counter used for key auto-repeat
