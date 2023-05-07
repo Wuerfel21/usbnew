@@ -7,12 +7,14 @@ _CLKFREQ = 252_000_000
 
 OBJ
 text: "vga/p2textdrv"
-usb: "usbnew" | HAVE_HIDPAD = true, HAVE_MOUSE = true
+usb: "usbnew" | HAVE_HIDPAD = true, HAVE_MOUSE = true, KEYQUEUE_SIZE = 32
 
 VAR
+byte keyboard_testbuf[40],_zero
 
 PUB main() | tmp
 
+bytefill(@keyboard_testbuf," ",40)
 text.initVga(-1,vgaBase,vgaVsync,0,text.VGA)
 text.setTextColours($F,$1)
 text.clear()
@@ -28,6 +30,13 @@ text.printStr(@"USB HID test")
 repeat
   text.setTextPos(1,0)
   printraw(@"Raw Keyboard: ",usb.get_keyboard_raw_buffer(),8)
+  repeat while tmp := scan2ascii(usb.get_key())
+    bytemove(@keyboard_testbuf,@keyboard_testbuf+1,39)
+    keyboard_testbuf[39] := tmp
+  text.printStr(@"Keyboard buffer: ")
+  text.printStr(@keyboard_testbuf)
+  text.tx((getct()&$04000000) ? "|" : " ")
+  text.nl()
   print_mouse()
   print_hidpad(0)
   text.nl()
@@ -138,6 +147,31 @@ PRI print_hidpad(num) | id, caps, i
   
   text.nl()
   text.setTextColours($F,$1)
+
+PUB scan2ascii(event) : r | shifted,scancode
+if event <= 0
+  return 0 ' No event or release event
+shifted := event.[16+1] || event.[16+5]
+scancode := event&255
+case scancode
+  usb.KEY_A..usb.KEY_Z:
+    if shifted
+      return (scancode - usb.KEY_A) + "A"
+    else
+      return (scancode - usb.KEY_A) + "a"
+  usb.KEY_1..usb.KEY_0:
+    if shifted
+      return lookupz(scancode-usb.KEY_1 : "!","@","#","$","%","^","&","*","(",")")
+    elseif scancode == usb.KEY_0
+      return "0"
+    else
+      return (scancode - usb.KEY_1) + "1"
+  usb.KEY_SPACE: return " "
+  usb.KEY_NUM0: return "0"
+  usb.KEY_NUM1..usb.KEY_NUM9: return (scancode - usb.KEY_NUM1) + "1"
+  other:
+    return 0
+
 
 DAT
 mouse4bpp   long    %0000_0000_0001_0000, $000f0000, $00000000

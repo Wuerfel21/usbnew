@@ -18,6 +18,8 @@ CON
     ACTIVITY_LED  = 57
     ERROR_LED     = 56
 
+    KEYQUEUE_SIZE = 0
+
     HAVE_MOUSE = false
 
     HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
@@ -154,6 +156,17 @@ PUB mouse_set_limits(xlim,ylim)
 
 PUB mouse_set_outptr(ptr)
   mouse_outptr := ptr
+
+'' Return key event from buffer if there is one
+PUB get_key() : r | tail
+  tail := keyq_tail
+  if keyq_head == tail
+    return 0 ' No event
+  r := keyq_data[tail]
+  if ++tail == KEYQUEUE_SIZE
+    tail := 0
+  keyq_tail := tail
+
 
 DAT             ' Startup for ASM only
                 {
@@ -1960,9 +1973,9 @@ hset_config
                 mov     hpar1, #0                       ' SetIdle() duration 0 = indefinite
                 getbyte hpar2, kb_intf_num, #0
                 call    #hset_idle
-                cmp     retval, #PID_ACK        wz
-        if_nz   mov     hkbd_ep_addr, #0
-        if_nz   jmp     #.notify_client
+                'cmp     retval, #PID_ACK        wz
+        'if_nz   mov     hkbd_ep_addr, #0
+        'if_nz   jmp     #.notify_client
                 mov     hctwait, _2ms_
                 call    #poll_waitx
                 call    #hset_kbdled_report
@@ -1989,6 +2002,24 @@ if HAVE_MOUSE
                 cmp     htmp, htmp1             wz
         if_nz   jmp     #.gamepad_config                ' No mouse, setup gamepad, if detected
 
+                debug("mouse passed addr check")
+
+                loc     ptra, #get_desc                 ' Get HID descriptor
+                wrword  #$FF, ptra[wLength]
+                wrword  ms_intf_num,ptra[wIndex]
+                alts    hdev_port, #hid_descr_p
+                mov     pb, 0-0
+                call    #control_read
+                cmp     retval, #PID_ACK        wz
+        if_nz   altd    hdev_port, #hdev_ep_addr
+        if_nz   mov     0-0, #0
+        if_nz   jmp     #.notify_client
+                altd    hdev_port, #gp_descr_len
+                mov     0-0, total_data
+                alts    hdev_port, #hid_descr_p
+                mov     pb, 0-0
+                debug(uhex(pb),uhex_byte_array(pb,total_data))
+
                 getbyte htmp, ms_intf_num, #0
                 loc     ptra, #set_protocol
                 wrword  #BOOT_PROTOCOL, ptra[wValue]
@@ -1998,12 +2029,14 @@ if HAVE_MOUSE
                 cmp     retval, #PID_ACK        wz
         if_nz   mov     hmouse_ep_addr, #0
         if_nz   jmp     #.notify_client
+                debug("mouse passed SetProtocol")
                 mov     hpar1, #0                       ' SetIdle() duration 0 = indefinite
                 getbyte hpar2, kb_intf_num, #0
                 call    #hset_idle
-                cmp     retval, #PID_ACK        wz
-        if_nz   mov     hmouse_ep_addr, #0
-        if_nz   jmp     #.notify_client
+                'cmp     retval, #PID_ACK        wz
+        'if_nz   mov     hmouse_ep_addr, #0
+        'if_nz   jmp     #.notify_client
+                debug("mouse passed SetIdle")
                 mov     ep_addr_pid, hmouse_ep_addr
                 call    #calc_crc5                      ' One-time calculation of the ep/addr/pid crc
                 testb   hub_port_status, #HUB_PORT_LOWSPEED wc
@@ -2064,12 +2097,13 @@ end
 
                 loc     ptra, #get_desc                 ' Get HID descriptor
                 wrword  #$FF, ptra[wLength]
+                wrword  #0,ptra[wIndex] ' this breaks if not zero?
                 alts    hdev_port, #hid_descr_p
                 mov     pb, 0-0
                 call    #control_read
                 cmp     retval, #PID_ACK        wz
         if_nz   altd    hdev_port, #hdev_ep_addr
-        if_nz   mov     hdev_ep_addr, #0
+        if_nz   mov     0-0, #0
         if_nz   jmp     #.notify_client
                 altd    hdev_port, #gp_descr_len
                 mov     0-0, total_data
@@ -2365,8 +2399,8 @@ hkbd_compare
 ' On exit:
 '   hpar1 - bit     31 = 0 pressed, 1 released
 '               23..16 = key modifiers state
-'                15..8 = scancode
-'                 7..0 = ASCII key code (or 0 if none)
+'                15..8 = unused
+'                 7..0 = scancode
 '------------------------------------------------------------------------------
 hkbd_translate
 
@@ -2422,38 +2456,23 @@ hkbd_translate
         end
 
         end
-                mov     htmp, hpar1
-                shl     htmp, #1
-                test    hpar2, #KEYS_SHIFT  wz  ' SHIFT
-        if_nz   add     htmp, #1
-                loc     pb, #kbd_table
-                add     pb, htmp
-                rdbyte  htmp, pb
-
-         if_c    jmp     #.l1
-                debug(udec(hdev_port)," KEYBOARD PRESS scancode=", uhex_byte_(hpar1), ", key: ",uhex_byte_(htmp), ", mod: ",ubin_byte_(hpar2))
-        if_nc   jmp     #.l2
-.l1             debug(udec(hdev_port)," KEYBOARD REL   scancode=", uhex_byte_(hpar1), ", key: ",uhex_byte_(htmp), ", mod: ",ubin_byte_(hpar2))
-.l2             shl     hpar1, #8
-                setbyte hpar1, htmp, #0
                 setbyte hpar1, hpar2, #2
-        _ret_   bitc    hpar1, #31
-
-kbd_table ' Index is the key scan code
-          {$00} word    $0000, $0000, $0000, $0000 ' $03
-          {$04} word    $4161, $4262, $4363, $4464                                 ' $07: Aa Bb Cc Dd
-          {$08} word    $4565, $4666, $4767, $4868, $4969, $4A6A, $4B6B, $4C6C     ' $0f: Ee Ff Gg Hh Ii Jj Kk Ll
-          {$10} word    $4D6D, $4E6E, $4F6F, $5070, $5171, $5272, $5373, $5474     ' $17: Mm Nn Oo Pp Qq Rr Ss Tt
-          {$18} word    $5575, $5676, $5777, $5878, $5979, $5A7A, $2131, $4032     ' $1f: Uu Vv Ww Xx Yy Zz !1 @2
-          {$20} word    $2333, $2434, $2535, $5E36, $2637, $2A38, $2839, $2930     ' $27: #3 $4 %5 ^6 &7 *8 (9 )0
-          {$28} word    $0D0D, $1B1B, $0808, $0909, $2020, $5F2D, $2B3D, $7B5B     ' $2f: Enter Esc BkSpc Tab Spc _- += {[
-          {$30} word    $7D5D, $7C5C, $7E23, $3A3B, $2227, $7E60, $3C2C, $3E2E     ' $37: }] |\ ~# :; "' ~` <, >.
-          {$38} word    $3F2F, $0000, $0000, $0000, $0000, $0000, $0000, $0000     ' $3f: ?/ CapsLock F1 F2 F3 F4 F5 F6
-          {$40} word    $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000     ' $47: F7 F8 F9 F10 F11 F12 PrtSc, ScrLk
-          {$48} word    $0000, $0000, $0000, $0000, $7F7F, $0000, $0000, $0000     ' $4f: Pause, Ins, Home PgUp BkSpc_Del End PgDn Right
-          {$50} word    $0000, $0000, $0000, $0000, $2F2F, $2A2A, $2D2D, $2B2B     ' $57: Left Down Up KpdNumLck Kp/ Kp* Kp- Kp+
-          {$58} word    $0D0D, $3131, $3232, $3333, $5034, $3535, $3636, $3737     ' $5f: KpEnter Kp1_End Kp2_Down Kp3_PgDn Kp4_Left Kp5 Kp6_Right Kp7_Home
-          {$60} word    $3838, $3939, $3030, $7F2E, $5C7C, $0000                   ' $65: Kp8_Up Kp9_PgUp Kp0_Ins Kp._Del Kp\_| App
+                bitc    hpar1, #31
+        if KEYQUEUE_SIZE > 0
+                loc pb,#keyq_head
+                rdword htmp,pb
+                getbyte htmp1,htmp,#1 ' tail
+                getbyte htmp,htmp,#0 ' head
+                incmod htmp,#KEYQUEUE_SIZE - 1
+                cmp htmp1,htmp wz ' check buffer overflow
+                mov htmp1,htmp
+                mul htmp1,#4
+                add htmp1,pb
+                add htmp1,#2
+        if_nz   wrlong hpar1,htmp1
+        if_nz   wrbyte htmp,pb
+        end
+                ret wcz
 
 if HAVE_MOUSE
 '------------------------------------------------------------------------------
@@ -2621,7 +2640,7 @@ hpad_hid
                 mov     ptra, 0-0
                 alts    hdev_port, #gp_descr_len
                 mov     pa, 0-0
-                debug(udec(hdev_port), " HID ", uhex_long(ep_addr_pid),uhex_long(ptra),udec(pa))
+                'debug(udec(hdev_port), " HID ", uhex_long(ep_addr_pid),uhex_long(ptra),udec(pa))
                 mov     hidr_usage, ##$76543210
 
 .next
@@ -3600,9 +3619,18 @@ xinp_rumble_cmd byte    $00, $08, $00
                 byte    $00             ' Right rumble
                 byte    $00, $00, $00
 
+alignl
+
 if HAVE_MOUSE
 mouse_limits long 0[2]
 mouse_outptr long 0
+end
+
+if KEYQUEUE_SIZE > 0
+keyq_head byte 0
+keyq_tail byte 0
+keyq_data long 0[KEYQUEUE_SIZE]
+alignl
 end
 
 if EMUPAD_MAX_DEV > 0
