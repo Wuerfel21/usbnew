@@ -1943,9 +1943,9 @@ hset_config
                 and     htmp1, ##ADDR_MASK
                 cmp     htmp, htmp1             wz
         if HAVE_MOUSE
-        if_z    jmp     #.mouse_config                  ' No keyboard
+        if_nz   jmp     #.mouse_config                  ' No keyboard
         else
-        if_z    jmp     #.gamepad_config                ' No keyboard
+        if_nz   jmp     #.gamepad_config                ' No keyboard
         end
 
                 getbyte htmp, kb_intf_num, #0
