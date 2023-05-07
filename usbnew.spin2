@@ -167,6 +167,14 @@ PUB get_key() : r | tail
     tail := 0
   keyq_tail := tail
 
+'' Peek top of key event buffer
+PUB peek_key() : r
+  tail := keyq_tail
+  if keyq_head == tail
+    return 0 ' No event
+  else
+    return keyq_data[tail]
+
 
 DAT             ' Startup for ASM only
                 {
