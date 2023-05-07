@@ -37,6 +37,12 @@ repeat
   text.printStr(@keyboard_testbuf)
   text.tx((getct()&$04000000) ? "|" : " ")
   text.nl()
+  text.printStr(@"Enter key: ")
+  if usb.keystate(usb.KEY_ENTER)
+    text.printStr(@"DOWN")
+  else
+    text.printStr(@"UP")
+  text.nl()
   print_mouse()
   print_hidpad(0)
   text.nl()

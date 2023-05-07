@@ -82,15 +82,30 @@ PUB set_basepin(pin)
   dm := pin+2
   dp := pin+3
 
-PUB keystate(key) : r | tmp
+'' Get current pressed state of a keyboard key
+PUB keystate(key) : r | buf[2],tmp
   if key >= $E0 && key < $E8
     return not not (hkbd_report.byte[0] >> (key-$E0))
   else
-    tmp := @hkbd_report + 2
-    repeat 6
-      if byte[tmp++] == key
-        return true
-    return false
+    '' Do this in inline ASM to ensure atomicity
+    tmp := @hkbd_report
+    org
+              setq #1
+              rdlong buf,tmp
+              getbyte tmp,buf+0,#2
+              cmp tmp,key wz
+              getbyte tmp,buf+0,#3
+        if_nz cmp tmp,key wz
+              getbyte tmp,buf+1,#0
+        if_nz cmp tmp,key wz
+              getbyte tmp,buf+1,#1
+        if_nz cmp tmp,key wz
+              getbyte tmp,buf+1,#2
+        if_nz cmp tmp,key wz
+              getbyte tmp,buf+1,#3
+        if_nz cmp tmp,key wz
+        if_z  neg r,#1
+    end
 
 PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_DEV > 0
@@ -2390,10 +2405,10 @@ hkbd_compare
 
 .copy           mov     ptra, urx_buff_p
                 loc     ptrb, #hkbd_report
-                rdlong  htmp, ptra++
-                wrlong  htmp, ptrb++
-                rdlong  htmp, ptra++
-                wrlong  htmp, ptrb++
+                setq #1
+                rdlong  htmp1, ptra++
+                setq #1
+                wrlong  htmp1, ptrb++
 
                 ret
 
