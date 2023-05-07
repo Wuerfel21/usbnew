@@ -2528,9 +2528,9 @@ hget_mouse_in_report
                 setq    #3-1
                 wrlong  hr1,ptrb
                 ' if outptr set, write X/Y words
-                cmp htmp2,#0                    wz
+                cmp htmp3,#0                    wz
         if_nz   setword hr1,hr2,#1
-        if_nz   wrlong hr1,htmp2
+        if_nz   wrlong hr1,htmp3
                 ret
 end
 

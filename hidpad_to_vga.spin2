@@ -18,9 +18,9 @@ text.setTextColours($F,$1)
 text.clear()
 usb.start()
 usb.mouse_set_limits(640-1,480-1)
-'usb.mouse_set_outptr(text.getDisplay() + 7*4)
+usb.mouse_set_outptr(text.getDisplay() + 7*4)
 byte[text.getRegion()][5] |= 128 ' enable mouse cursor (in awful way)
-long[text.getRegion()][9] := $FF000000
+long[text.getRegion()][9] := ($04<<24) | @mouse4bpp
 
 text.printStr(@"USB HID test")
 
@@ -138,6 +138,24 @@ PRI print_hidpad(num) | id, caps, i
   
   text.nl()
   text.setTextColours($F,$1)
+
+DAT
+mouse4bpp   long    %0000_0000_0001_0000, $000f0000, $00000000
+            long    %0000_0000_0011_1000, $00f0f000, $00000000
+            long    %0000_0000_0111_1000, $0f00f000, $00000000
+            long    %0000_0001_1111_1000, $ff00f000, $0000000f
+            long    %0000_1111_1111_1000, $0f00f000, $0000fff0
+            long    %0011_1111_1111_1011, $0f00f0ff, $00ff00f0
+            long    %0111_1111_1111_1111, $0f00ff0f, $0f0f00f0
+            long    %1111_1111_1111_1110, $0000f0f0, $f00f0000
+            long    %1111_1111_1111_1110, $0000f0f0, $f0000000
+            long    %1111_1111_1111_1100, $00000f00, $f0000000
+            long    %1111_1111_1111_1100, $00000f00, $f0000000
+            long    %0111_1111_1111_1000, $0000f000, $0f000000
+            long    %0111_1111_1111_1000, $0000f000, $0f000000
+            long    %0111_1111_1111_0000, $000f0000, $0f000000
+            long    %0011_1111_1111_0000, $000f0000, $00f00000
+            long    %0011_1111_1111_0000, $ffff0000, $00ffffff
 
 
 
