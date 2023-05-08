@@ -185,7 +185,7 @@ PUB get_key() : r | tail
   keyq_tail := tail
 
 '' Peek top of key event buffer
-PUB peek_key() : r
+PUB peek_key() : r | tail
   tail := keyq_tail
   if keyq_head == tail
     return 0 ' No event
@@ -2360,12 +2360,18 @@ hkbd_compare
 
                 loc     ptra, #hkbd_report
 
-                mov     hpar1, #0
+                ' Handle modifiers
                 rdbyte  hpar2, urx_buff_p
-                rdbyte  htmp, ptra
-                cmp     hpar2, htmp     wz
-        if_nz   modc    _clr    wc
-        if_nz   call    #hkbd_translate
+                rdbyte  hr1, ptra
+                rolword hr1,hpar2,#0
+                mergew  hr1
+                mov     pa,#8
+.modloop
+                rczr    hr1     wcz ' New value in C, old value in Z
+                mov     hpar1,#$E8
+                sub     hpar1,pa
+      if_c_ne_z call    #hkbd_translate
+                djnz    pa,#.modloop
 
 .release        modc    _set    wc
                 'alts    hdev_port, #hid_report_p
@@ -2486,13 +2492,13 @@ hkbd_translate
                 rdword htmp,pb
                 getbyte htmp1,htmp,#1 ' tail
                 getbyte htmp,htmp,#0 ' head
+                mov htmp2,htmp
+                mul htmp2,#4
+                add htmp2,pb
+                add htmp2,#2
                 incmod htmp,#KEYQUEUE_SIZE - 1
                 cmp htmp1,htmp wz ' check buffer overflow
-                mov htmp1,htmp
-                mul htmp1,#4
-                add htmp1,pb
-                add htmp1,#2
-        if_nz   wrlong hpar1,htmp1
+        if_nz   wrlong hpar1,htmp2
         if_nz   wrbyte htmp,pb
         end
                 ret wcz
@@ -2597,6 +2603,7 @@ hget_gp_in_report
 
                 cmp     hpar3, #0               wz
         if_z    ret                                     ' Ignore an empty DATAx packet
+                'debug(udec(hdev_port)," RAW REPORT: ",uhex_byte_array(urx_buff_p,hpar3))
 
                 altgb   hdev_port, #hdev_next_datax     ' Txn success, so toggle DATAx
                 getbyte htmp                            ' |
