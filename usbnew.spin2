@@ -1,11 +1,11 @@
 {
-    USB Keyboard and Gamepad Driver
-    Copyright (c) 2022 by Marco Maccaferri <macca@maccasoft.com>
-    Based on 1CogKbM code by Garry Jordan ("garryj")
-    with code portions by Ada Gottensträter
+    "USBNEW" BETA VERSION (USE AT YOUR PERIL)
 
-    Usage : see hkbd_compare, hkbd_translate for keyboard
-                hid_decode and hpad_translate for controllers
+    USB Keyboard/Mouse/Gamepad Driver
+    By Ada Gottensträter ("Wuerfel_21")
+
+    Original 1CogKbM code by Garry Jordan ("garryj")
+    Hub support and significant portions by Marco Maccaferri ("macca")
 
     TERMS OF USE: MIT License
 }
