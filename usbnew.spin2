@@ -164,6 +164,15 @@ PUB mouse_xyz() : x,y,z
   y := mouse_yacc
   z := mouse_zacc
 
+PUB mouse_move(x,y)
+  mouse_lock := 1
+  waitus(2) ' hope driver is now done
+  mouse_xacc := x
+  mouse_yacc := y
+  if mouse_outptr
+    long[mouse_outptr] := y << 16 | x & $FFFF
+  mouse_lock := 0
+
 PUB mouse_buttons() : r
   return mouse_bstate&7
 
@@ -756,23 +765,6 @@ gp_max_index    long    0
 gp_descr_len    long    0, 0[4]
 hdev_init_end
 
-hidr_start
-hidr_usage      long    0 ' <- can get trashed after parsing
-hidr_flags      long    0
-hidr_axis       long    0[3]
-hidr_buttons    long    0
-hidr_hats       long    0
-'' Above are actually useful values, 6 longs
-hidr_id         long    0
-hidr_state      long    0
-hidr_size       long    0
-hidr_count      long    0
-hidr_offset     long    0
-hidr_usage_idx  long    0
-hidr_lminmax    long    0
-hidr_pminmax    long    0
-hidr_end
-
 ' Initialized at cog startup:
 save_sysclk     long    0         ' Save the current sysclock as the client may change it
 hcog_base_addr  long    0         ' This object's start address in hub, read from PTRB at cog creation
@@ -840,6 +832,25 @@ hpad_emupad_rule   long 0,0[4] ' This is PER REAL DEVICE
 end
 
 hreg_init_end
+
+hidr_start
+hidr_usage      res     1 ' <- can get trashed after parsing
+hidr_flags      res     1
+hidr_axis       res     3
+hidr_buttons    res     1
+hidr_hats       res     1
+'' Above are actually useful values, 6 longs
+hidr_id         res     1
+hidr_state      res     1
+hidr_size       res     1
+hidr_count      res     1
+hidr_offset     res     1
+hidr_usage_idx  res     1
+hidr_lminmax    res     1
+hidr_pminmax    res     1
+hidr_type       res     1
+hidr_end
+
 ' Variables dependent on the system freqency
 _var_64_lower_  res     1
 _var_64_upper_  res     1
@@ -2572,6 +2583,9 @@ hget_mouse_in_report
         if_z    signx   htmp, #7                        ' If it's there, use it
         if_z    add     hr3,htmp
 
+                rdbyte  htmp,ptrb[16]           wz      ' Is lock flag set?
+        if_nz   ret                                     ' If so, don't write results
+
                 ' write back accumulators
                 setq    #3-1
                 wrlong  hr1,ptrb
@@ -2640,29 +2654,34 @@ hget_gp_in_report
         if_z    ret                                     ' Ignore report if not changed
                 }
                 ' ----- end of block to remove
+                loc pa,#hpad_translate
+                push pa
+
+                ' FALL THROUGH !!!!
 
 '------------------------------------------------------------------------------
 ' Decode controller report
 '------------------------------------------------------------------------------
 hid_decode
-                mov     htmp, #hidr_start       ' clear all hid report registers
-.cl             altd    htmp
-                mov     0-0, #0
-                add     htmp, #1
-                cmp     htmp, #hidr_end         wz
-        if_nz   jmp     #.cl
+                ' clear all hid report registers (WILL NOT WORK IF MORE THAN 512K RAM)
+                setq #(hidr_end-hidr_start)-1
+                rdlong  hidr_start,##$8_0000
 
                 mov     ptrb, urx_buff_p
 
                 altgb   hdev_port, #hdev_type
-                getbyte htmp
-                cmp     htmp, #XINPUT_READY     wz
+                getbyte hidr_type
+                cmp     hidr_type, #XINPUT_READY        wz
         if_z    jmp     #hpad_xinput
-                cmp     htmp, #PS3_READY        wz
+                cmp     hidr_type, #PS3_READY           wz
         if_z    jmp     #hpad_ps3
+                cmp     hidr_type, #KBM_READY           wz
+        if_z    mov     hidr_type,#M_READY
+                cmp     hidr_type, #M_READY             wz
+                
 
 '------------------------------------------------------------------------------
-' Handle HID controller
+' Handle HID controller (or mouse now
 ' On entry:
 '   ptrb - controller report
 '------------------------------------------------------------------------------
@@ -2676,7 +2695,7 @@ hpad_hid
 
 .next
                 cmps    pa, #0      wcz
-        if_be   jmp     #hpad_translate
+        if_be   ret     wcz
 
                 rdbyte  hpar1, ptra++
                 sub     pa, #1
@@ -2778,7 +2797,7 @@ hpad_hid
                 jmp     #.skip
 .report_id
                 cmp     hidr_id, #0     wz
-        if_nz   jmp     #hpad_translate
+        if_nz   ret     wcz
                 rdbyte  hidr_id, ptrb++
                 cmp     hidr_id, hpar2  wz
         if_nz   ret
@@ -2791,6 +2810,11 @@ hpad_hid
 .usage
                 cmp     hpar2, #HID_USAGE_JOYSTICK  wz
         if_nz   cmp     hpar2, #HID_USAGE_GAMEPAD   wz
+        if_z    cmp     hidr_type,#HID_READY        wz
+        if_z    mov     hidr_state, #1
+        if_z    jmp     #.next
+                cmp     hpar2, #HID_USAGE_MOUSE     wz
+        if_z    cmp     hidr_type,#M_READY          wz
         if_z    mov     hidr_state, #1
         if_z    jmp     #.next
                 cmp     hpar2, #HID_USAGE_X     wz
@@ -3682,16 +3706,6 @@ hid_descr       byte    0[HID_DESCR_LEN * 4]
 'hid_report      byte    0[HID_IN_RPT_LEN * 4]
 hkbd_report     byte    0[8]
 
-if HAVE_MOUSE
-mouse_xacc      long 0
-mouse_yacc      long 0
-mouse_zacc      long 0
-mouse_bstate    byte 0
-mouse_lpending  byte 0
-mouse_rpending  byte 0
-mouse_mpending  byte 0
-end
-
 if HAVE_HIDPAD
 hidpad_report   byte    0[4*HIDPAD_REPORT_SIZE]
 end
@@ -3707,6 +3721,18 @@ hub_descr       byte    0   ' bDescLength
                 byte    0   ' PortPwrCtrlMask
 
 usb_cache_end
+
+if HAVE_MOUSE
+mouse_xacc      long 0
+mouse_yacc      long 0
+mouse_zacc      long 0
+mouse_bstate    byte 0
+mouse_lpending  byte 0
+mouse_rpending  byte 0
+mouse_mpending  byte 0
+mouse_lock      byte 0
+                byte 0[3] ' padding
+end
 
 urx_buff        byte    0[URX_BUFF_LEN]         ' USB IN DATAx scratch buffer
 dev_desc_buff   byte    0[DEV_DESC_LEN]         ' Device descriptor
