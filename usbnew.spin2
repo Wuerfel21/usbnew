@@ -752,6 +752,46 @@ emupad_out_ptr  long    0
 end
 save_sysclk     long    0         ' Save the current sysclock as the client may change it
 
+hdev_init_start
+hdev_port       res     1
+hdev_next_datax res     2 ' 1+4 byte
+hub_intf_num    res     1
+hub_next_datax  res     1
+hub_status_chg  res     1
+hub_port_status res     1
+if HAVE_MOUSE
+ms_intf_num     res     1
+ms_in_max_pkt   res     1
+end
+kb_intf_num     res     1
+kb_interval     res     1
+kb_in_max_pkt   res     1
+kb_max_index    res     1
+kb_led_states   res     1
+gp_intf_num     res     1
+gp_interval     res     1
+gp_max_index    res     1
+gp_descr_len    res     1+4
+hdev_init_end
+
+hidr_start
+hidr_usage      res     1 ' <- can get trashed after parsing
+hidr_flags      res     1
+hidr_axis       res     3
+hidr_buttons    res     1
+hidr_hats       res     1
+'' Above are actually useful values, 6 longs
+hidr_id         res     1
+hidr_state      res     1
+hidr_size       res     1
+hidr_count      res     1
+hidr_offset     res     1
+hidr_usage_idx  res     1
+hidr_lminmax    res     1
+hidr_pminmax    res     1
+hidr_type       res     1
+hidr_end
+
 ' Initialized at cog startup:
 hcog_base_addr  res     1         ' This object's start address in hub, read from PTRB at cog creation
 iframe_ct_new   res     1
@@ -816,47 +856,6 @@ hpad_emupad_rule   res 1+4 ' This is PER REAL DEVICE
 end
 
 hreg_init_end
-
-
-hdev_init_start
-hdev_port       res     1
-hdev_next_datax res     2 ' 1+4 byte
-hub_intf_num    res     1
-hub_next_datax  res     1
-hub_status_chg  res     1
-hub_port_status res     1
-if HAVE_MOUSE
-ms_intf_num     res     1
-ms_in_max_pkt   res     1
-end
-kb_intf_num     res     1
-kb_interval     res     1
-kb_in_max_pkt   res     1
-kb_max_index    res     1
-kb_led_states   res     1
-gp_intf_num     res     1
-gp_interval     res     1
-gp_max_index    res     1
-gp_descr_len    res     1+4
-hdev_init_end
-
-hidr_start
-hidr_usage      res     1 ' <- can get trashed after parsing
-hidr_flags      res     1
-hidr_axis       res     3
-hidr_buttons    res     1
-hidr_hats       res     1
-'' Above are actually useful values, 6 longs
-hidr_id         res     1
-hidr_state      res     1
-hidr_size       res     1
-hidr_count      res     1
-hidr_offset     res     1
-hidr_usage_idx  res     1
-hidr_lminmax    res     1
-hidr_pminmax    res     1
-hidr_type       res     1
-hidr_end
 
 ' Variables dependent on the system freqency
 _var_64_lower_  res     1
