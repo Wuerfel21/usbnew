@@ -1327,8 +1327,8 @@ host_reset
                 dirl    dm                              ' Put smart pins into reset
                 dirl    dp
 
+                setq    #1
                 wrpin   ##USB_V2_DRVOUT, dm             ' The same USB smart pin mode for D- and D+ pins
-                wrpin   ##USB_V2_DRVOUT, dp
                 wxpin   _usb_h_fs_nco_, dm              ' Set host mode and full-speed NCO
 .enable
                 dirh    dm                              ' Crank them smart pins up
@@ -1551,8 +1551,8 @@ hwait_resume
 utx_pre
                 dirl    dm                              ' Put smart pins into reset
                 dirl    dp
-                wrpin   ##0, dm                         ' Disable smartpin mode
-                wrpin   ##0, dp
+                setq    #1
+                wrpin   #0, dm                          ' Disable smartpin mode
                 drvl    dm
                 drvh    dp
 
@@ -1567,8 +1567,8 @@ utx_pre
 
                 dirl    dm                              ' Put smart pins into reset
                 dirl    dp
+                setq    #1
                 wrpin   ##USB_V2_DRVOUT, dm             ' The same USB smart pin mode for D- and D+ pins
-                wrpin   ##USB_V2_DRVOUT, dp
                 wxpin   _usb_h_ls_nco_, dm              ' Host mode and 1.5Mbs baud
                 dirh    dm                              ' Crank them smart pins up
                 dirh    dp
