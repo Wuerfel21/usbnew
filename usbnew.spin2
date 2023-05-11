@@ -1899,17 +1899,13 @@ if HAVE_MOUSE
 end
 .gamepad
                 mov     htmp, hkbd_ep_addr
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, hpar2
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, hpar2
+                and     htmp, ##ADDR_MASK       wz
         if_z    jmp     #.next_intf
         if HAVE_MOUSE
                 mov     htmp, hmouse_ep_addr
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, hpar2
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, hpar2
+                and     htmp, ##ADDR_MASK       wz
         if_z    jmp     #.next_intf
         end
                 getbyte gp_intf_num, hdev_intf_idx, #0  ' Save interface index and poll interval values
@@ -1977,10 +1973,8 @@ hset_config
         if_z    jmp     #.mouse_config                  ' No keyboard
 
                 mov     htmp, hkbd_ep_addr
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, ep_addr_pid
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, ep_addr_pid
+                and     htmp, ##ADDR_MASK       wz
         if_nz   jmp     #.mouse_config                  ' No keyboard
 
                 getbyte htmp, kb_intf_num, #0
@@ -2025,10 +2019,8 @@ if HAVE_MOUSE
                 cmp     hmouse_ep_addr, #0        wz
         if_z    jmp     #.gamepad_config                ' No mouse, setup gamepad, if detected
                 mov     htmp, hmouse_ep_addr
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, ep_addr_pid
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, ep_addr_pid
+                and     htmp, ##ADDR_MASK       wz
         if_nz   jmp     #.gamepad_config                ' No mouse, setup gamepad, if detected
 
                 debug("mouse passed addr check")
@@ -2082,10 +2074,8 @@ if _HAVE_GAMEPAD
         if_z    jmp     #.hub_config                    ' No gamepad
                 alts    hdev_port, #hdev_ep_addr
                 mov     htmp, 0-0
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, ep_addr_pid
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, ep_addr_pid
+                and     htmp, ##ADDR_MASK       wz
         if_nz   jmp     #.hub_config                    ' No gamepad
 
                 alts    hdev_port, #hdev_ep_addr
@@ -2194,10 +2184,8 @@ end
                 cmp     hhub_ep_addr, #0    wz
         if_z    ret                                     ' No HUB
                 mov     htmp, hhub_ep_addr
-                and     htmp, ##ADDR_MASK
-                mov     htmp1, ep_addr_pid
-                and     htmp1, ##ADDR_MASK
-                cmp     htmp, htmp1             wz
+                xor     htmp, ep_addr_pid
+                and     htmp, ##ADDR_MASK       wz
         if_nz   ret                                     ' No HUB
 
                 loc     ptra, #get_hub_desc             ' Get HUB descriptor
