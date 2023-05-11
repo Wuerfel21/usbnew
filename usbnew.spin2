@@ -418,8 +418,8 @@ utx_data
                 call    #utx_byte
                 rev     utx                             ' Calculate CRC while the data is shifting out
                 setq    utx                             ' SETQ left-justifies the reflected data byte
-                crcnib  crc, ##USB16_POLY               ' Run CRC calc on the data nibs
-                crcnib  crc, ##USB16_POLY
+                crcnib  crc, usb16_poly_r               ' Run CRC calc on the data nibs
+                crcnib  crc, usb16_poly_r
                 djnz    pkt_cnt, #.read_byte
 .send_crc
                 bitnot  crc,#0 addbits 15               ' Final XOR, and send the calculated CRC16
@@ -475,8 +475,8 @@ urx_data
                 wfbyte  retval                          ' Add it to the data buffer
                 rev     retval                          ' Calculate CRC while next byte is shifting in
                 setq    retval                          ' SETQ left-justifies the reflected data byte
-                crcnib  crc, ##USB16_POLY               ' Run CRC calc on the data nibs
-                crcnib  crc, ##USB16_POLY
+                crcnib  crc, usb16_poly_r               ' Run CRC calc on the data nibs
+                crcnib  crc, usb16_poly_r
 .end_crc
                 add     pkt_cnt, #1
                 cmp     pkt_cnt, pkt_tmp        wcz
@@ -719,6 +719,8 @@ host_error
                 jmp     #host_reset                     ' See if it works...
 
 
+usb16_poly_r    long    USB16_POLY
+
 ' USB commands and error codes
 cmd_data        long    0
 usb_err_code    long    ERR_NONE
@@ -770,7 +772,6 @@ save_sysclk     long    0         ' Save the current sysclock as the client may 
 hcog_base_addr  long    0         ' This object's start address in hub, read from PTRB at cog creation
 iframe_ct_new   long    0
 iframe_ct_base  long    0
-p2rev_val       long    P2RevB
 utx_tweak       long    0         ' Sysclock speeds above ~120MHz need some fairy dust for USB tx
 if EMUPAD_MAX_DEV > 0
 emupad_out_ptr  long    0
@@ -944,15 +945,7 @@ set_speed_full
 set_speed_low
                 test    hstatus, #DWNSTRM_HUBF  wz      ' If no downstream hub connected, set low-speed baud
         if_z    mov     ijmp1, #isr1_lsframe            ' Set the USB 1ms frame handler ISR routine
-                testb   p2rev_val, #0           wc      ' P2 Revision is either %0001 (A) or %0010 (B+)
-        if_c    dirl    dm                              ' P2RevA needs to be completely reconfigured
-        if_c    dirl    dp
-        if_c    wrpin   ##USB_V1HMODE_LS, dm            ' Low-speed signaling is always used
-        if_c    wrpin   ##USB_V1HMODE_LS, dp
-        if_c    wxpin   _1_5Mbps_, dm                   ' Set 1.5Mbs baud if no downstream hub
-        if_c    dirh    dm
-        if_c    dirh    dp
-        if_nc   wxpin   _usb_h_ls_nco_, dm              ' Host mode and 1.5Mbs baud if no downstream hub
+                wxpin   _usb_h_ls_nco_, dm              ' Host mode and 1.5Mbs baud if no downstream hub
                 mov     max_pkt_size, #8                ' Set LS control read/write DATAx packet size
                 mov     tat_wait, _tat_wait_ls_         ' Bus turn-around time in low-speed bit periods
                 mov     ip_delay, _ip_delay_ls_         ' Inter-packet delay in low-speed bit periods
@@ -1329,13 +1322,7 @@ host_reset
         if_nz   call    pb                              ' Recalculate sysclk dependent timing values
                 dirl    dm                              ' Put smart pins into reset
                 dirl    dp
-                cmp     p2rev_val, #P2RevB      wz
-        if_z    jmp     #.not_reva
-                wrpin   ##USB_V1HMODE_FS, dm            ' The host is also the root hub, so full-speed is its native speed
-                wrpin   ##USB_V1HMODE_FS, dp
-                wxpin   _12Mbps_, dm                    ' Default to Full-Speed
-                jmp     #.enable
-.not_reva
+
                 wrpin   ##USB_V2_DRVOUT, dm             ' The same USB smart pin mode for D- and D+ pins
                 wrpin   ##USB_V2_DRVOUT, dp
                 wxpin   _usb_h_fs_nco_, dm              ' Set host mode and full-speed NCO
@@ -1644,16 +1631,7 @@ usb_host_init
         if ERROR_LED >= 0
                 drvl    host_error_led                  ' Ensure fatal error LED is inactive
         end
-'                mov     p2rev_val, ptrb                 ' Running on P2RevA or P2RevB+ silicon?
-'                setq    #1
-'                rdlong  $1e0, ptrb++
-'                subr    p2rev_val, ptrb
-'                shr     p2rev_val, #2           wz      ' RevA if shift result is zero
-'        if_z    mov     p2rev_val, #P2RevA              ' 1 == RevA, 2 == RevB+
-'                loc     ptrb, #p2rev_char               ' Make a revision "A" or "B" char accessible to Spin2
-'                mov     htmp, p2rev_val
-'                add     htmp, #"@"
-'                wrbyte  htmp, ptrb
+
                 dirl    usb_event_pin                   ' Configure the USB event mailbox smart pin
                 wrpin   ##SP_REPO1_MODE, usb_event_pin  ' Mailbox smart pin output is enabled, so this pin# will raise
                 dirh    usb_event_pin                   ' IN at event post and OUT drives the Serial Host activity LED.
