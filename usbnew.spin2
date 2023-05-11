@@ -107,6 +107,9 @@ PUB keystate(key) : r | buf[2],tmp
         if_z  neg r,#1
     end
 
+PUB ledstates() : r
+  return hkbd_led_rep
+
 PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_DEV > 0
     emupad_out_ptr := ptr
@@ -1999,6 +2002,8 @@ hset_config
                 call    #poll_waitx
                 mov     kb_led_states, #LED_NUMLKF
                 mov     hkbd_ledstates, kb_led_states
+                loc     pa, #hkbd_led_rep
+                wrbyte  hkbd_ledstates,pa
                 call    #hset_kbdled_report
                 cmp     retval, #PID_ACK        wz
         if_nz   mov     hkbd_ep_addr, #0
@@ -2415,6 +2420,7 @@ hkbd_compare
                 rdlong  htmp1, ptra++
                 setq #1
                 wrlong  htmp1, ptrb++
+                wrbyte  hkbd_ledstates,ptrb++
 
                 ret
 
@@ -3707,6 +3713,8 @@ usb_cache_start
 hid_descr       byte    0[HID_DESCR_LEN * 4]
 'hid_report      byte    0[HID_IN_RPT_LEN * 4]
 hkbd_report     byte    0[8]
+hkbd_led_rep    byte    0
+alignl
 
 if HAVE_HIDPAD
 hidpad_report   byte    0[4*HIDPAD_REPORT_SIZE]

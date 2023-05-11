@@ -41,7 +41,12 @@ repeat
   if usb.keystate(usb.KEY_ENTER)
     text.printStr(@"DOWN")
   else
-    text.printStr(@"UP")
+    text.printStr(@"UP  ")
+  text.printStr(@"  Num Lock: ")
+  if usb.ledstates() & decod usb.LED_NUMLKB
+    text.printStr(@"ON  ")
+  else
+    text.printStr(@"OFF ")
   text.nl()
   print_mouse()
   print_hidpad(0)
