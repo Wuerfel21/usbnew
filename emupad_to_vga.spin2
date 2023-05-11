@@ -173,6 +173,8 @@ test_padmap
 byte "# test comment",10
 byte "      *       1C590026   1  2  3  4  5  6  0  0  7  8 # THE GAMEPAD",10
 byte "      *       20D6A713   4  3  2  1  5  6  7  8  9  10 # PowerA Switch controller",10
+byte "* 0E6F1112 4 1 2 3 0 0 0 0 9 10 # NeoGeo mini",10
+byte " * 20D6A710 4 3 2 1 5 6 0 0 9 10 # Mayflash MF-105",10
 byte "* CCCCCCCC # empty rule",10
 byte 0
 

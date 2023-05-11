@@ -40,7 +40,7 @@ repeat
 PUB scan2ascii(event) : r | shifted,scancode
 if event <= 0
   return 0 ' No event or release event
-shifted := event.[8+1] || event.[8+5]
+shifted := (event.[8+1] || event.[8+5]) ^^ event.[17]
 scancode := event&255
 case scancode
   usb.KEY_A..usb.KEY_Z:
