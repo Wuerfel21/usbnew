@@ -2252,14 +2252,14 @@ init_kbdm_data
                 wrbyte  #0, ptra++
                 cmp     ptra, pa                wcz
         if_b    jmp     #.loop
-
-                mov     pa, #hdev_init_start        ' Clear device data registers
-.regloop
-
+        
         if EMUPAD_MAX_DEV > 0
                 call #emupad_reset
         end
 
+
+                mov     pa, #hdev_init_start        ' Clear device data registers
+.regloop
                 altd    pa
                 mov     0-0, #0
                 add     pa, #1
