@@ -3930,11 +3930,6 @@ CON ' USB Host constants
 '   BYTE_TGLF    = decod(BYTE_TGLB)         ' Same bit position as the USB rx RDPIN status constants defined above
     DWNSTRM_HUBF = decod(DWNSTRM_HUBB)      ' NYI: downstream hub(s) connected
     SUSPENDF     = decod(SUSPENDB)          ' NYI: command the host to signal a global suspend
-'------------------------------------------------------------------------------
-' P2 silicon revision detection:
-'------------------------------------------------------------------------------
-    #1, P2RevA, P2RevB
-'------------------------------------------------------------------------------
 
 CON ' USB Descriptor Definitions
 '------------------------------------------------------------------------------
