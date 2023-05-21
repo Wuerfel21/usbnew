@@ -12,7 +12,7 @@ usb: "usbnew" | HAVE_HIDPAD = true, HAVE_MOUSE = true, KEYQUEUE_SIZE = 32
 VAR
 byte keyboard_testbuf[40],_zero
 
-PUB main() | tmp
+PUB main() | tmp, i
 
 bytefill(@keyboard_testbuf," ",40)
 text.initVga(-1,vgaBase,vgaVsync,0,text.VGA)
@@ -30,13 +30,6 @@ text.printStr(@"USB HID test")
 repeat
   text.setTextPos(1,0)
   printraw(@"Raw Keyboard: ",usb.get_keyboard_raw_buffer(),8)
-  repeat while tmp := scan2ascii(usb.get_key())
-    bytemove(@keyboard_testbuf,@keyboard_testbuf+1,39)
-    keyboard_testbuf[39] := tmp
-  text.printStr(@"Keyboard buffer: ")
-  text.printStr(@keyboard_testbuf)
-  text.tx((getct()&$04000000) ? "|" : " ")
-  text.nl()
   text.printStr(@"Enter key: ")
   if usb.keystate(usb.KEY_ENTER)
     text.printStr(@"DOWN")
@@ -48,28 +41,30 @@ repeat
   else
     text.printStr(@"OFF ")
   text.nl()
+  repeat while tmp := scan2ascii(usb.get_key())
+    bytemove(@keyboard_testbuf,@keyboard_testbuf+1,39)
+    keyboard_testbuf[39] := tmp
+  text.printStr(@"Keyboard buffer: ")
+  text.printStr(@keyboard_testbuf)
+  text.tx((getct()&$04000000) ? "|" : " ")
+  text.nl()
   print_mouse()
-  print_hidpad(0)
-  text.nl()
-  print_hidpad(1)
-  text.nl()
-  print_hidpad(2)
-  text.nl()
-  print_hidpad(3)
-  text.nl()
+  repeat i from 0 to usb.MAX_DEVICES - 1
+    print_hidpad(i)
+    text.nl()
 
 PRI printraw(name,ptr,size)
   text.printStr(name)
   repeat size
     text.hex(byte[ptr++],2)
     text.tx(" ")
-  text.nl()
+  'text.nl()
 
-PRI feik_tab(size) | col
+PRI feik_tab(size,inset=0) | col
   repeat
     text.txRaw(" ")
     _,col := text.getTextPos()
-    ifnot col//size
+    if col//size == inset
       quit
 
 PRI print_mouse | x,y,z
@@ -105,58 +100,52 @@ PRI print_hidpad(num) | id, caps, i
   text.dec(caps.[15..12])
   text.printStr(@" hats.")
   text.nl()
-  feik_tab(8)
+  feik_tab(4)
   text.printStr(@"Buttons: ")
-  text.bin(usb.hidpad_buttons(num),caps.[7..0])
-  text.nl()
-  feik_tab(12)
-  text.printStr(@"X : ")
-  if caps.[16]
-    text.dec(usb.hidpad_axis(num,0))
-  else
-    text.printStr(@"N/A")
-  feik_tab(12)
-  text.printStr(@"Y : ")
-  if caps.[17]
-    text.dec(usb.hidpad_axis(num,1))
-  else
-    text.printStr(@"N/A")
-  feik_tab(12)
-  text.printStr(@"Z : ")
-  if caps.[18]
-    text.dec(usb.hidpad_axis(num,2))
-  else
-    text.printStr(@"N/A")
-  text.nl()
-  feik_tab(12)
-  text.printStr(@"RX: ")
-  if caps.[19]
-    text.dec(usb.hidpad_axis(num,3))
-  else
-    text.printStr(@"N/A")
-  feik_tab(12)
-  text.printStr(@"RY: ")
-  if caps.[20]
-    text.dec(usb.hidpad_axis(num,4))
-  else
-    text.printStr(@"N/A")
-  feik_tab(12)
-  text.printStr(@"RZ: ")
-  if caps.[21]
-    text.dec(usb.hidpad_axis(num,5))
-  else
-    text.printStr(@"N/A")
-  text.nl()
-  feik_tab(8)
+  text.bin(usb.hidpad_buttons(num),caps.[7..0] <# 32)
+  feik_tab(4)
   text.printStr(@"Hats: ")
   if caps.[15..12]
     repeat i from 0 to caps.[15..12]-1
       text.hex(usb.hidpad_hat(num,i),2)
       text.tx(" ")
-
-
-  
   text.nl()
+  feik_tab(12,4)
+  text.printStr(@"X : ")
+  if caps.[16]
+    text.dec(usb.hidpad_axis(num,0))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12,4)
+  text.printStr(@"Y : ")
+  if caps.[17]
+    text.dec(usb.hidpad_axis(num,1))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12,4)
+  text.printStr(@"Z : ")
+  if caps.[18]
+    text.dec(usb.hidpad_axis(num,2))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12,4)
+  text.printStr(@"RX: ")
+  if caps.[19]
+    text.dec(usb.hidpad_axis(num,3))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12,4)
+  text.printStr(@"RY: ")
+  if caps.[20]
+    text.dec(usb.hidpad_axis(num,4))
+  else
+    text.printStr(@"N/A")
+  feik_tab(12,4)
+  text.printStr(@"RZ: ")
+  if caps.[21]
+    text.dec(usb.hidpad_axis(num,5))
+  else
+    text.printStr(@"N/A")
   text.setTextColours($F,$1)
 
 PUB scan2ascii(event) : r | shifted,scancode
