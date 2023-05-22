@@ -18,6 +18,8 @@ CON
     ACTIVITY_LED  = 57
     ERROR_LED     = 56
 
+    OVERLAP_MEMORY = false ' save memory at cost of making the driver non-reentrant
+
     KEYQUEUE_SIZE = 0
 
     HAVE_MOUSE = false
@@ -720,6 +722,19 @@ host_error
           end
                 jmp     #host_reset                     ' See if it works...
 
+'------------------------------------------------------------------------------
+' Get HID descriptor buffer for current port
+'------------------------------------------------------------------------------
+' On entry:
+' On exit:
+'   PB - HID descriptor buffer pointer
+'------------------------------------------------------------------------------
+get_hid_descr_buffer
+                mov     pb, hdev_port
+                cmpsub  pb, #1
+                mul     pb, #HID_DESCR_LEN
+        _ret_   add     pb, hid_descr_p
+
 
 usb16_poly_r    long    USB16_POLY
 
@@ -737,7 +752,7 @@ end
 if ERROR_LED >= 0
 host_error_led  long    ERROR_LED           ' Client defines the LED pin# to light on error
 end
-hid_descr_p     long    0, 0[MAX_DEVICES]
+hid_descr_p     long    0
 'hid_report_p    long    0, 0[MAX_DEVICES]
 'hkbd_report_p   long    0
 hub_descr_p     long    0
@@ -1582,6 +1597,9 @@ hlut_end
 
 DAT             ' USB Host HUB execution
                 orgh
+if OVERLAP_MEMORY
+                byte    $A5[((@usb_host_start+HID_DESCR_LEN*MAX_DEVICES)-$) #> 0] ' Make sure we don't run into the hubexec area
+end
 '------------------------------------------------------------------------------
 ' Routines called from cog space.
 '------------------------------------------------------------------------------
@@ -1592,9 +1610,15 @@ DAT             ' USB Host HUB execution
 ' USB host cog initialization.
 '------------------------------------------------------------------------------
 usb_host_init
-                loc     pb, #hid_descr                  ' Initialize buffer pointers
+                ' Initialize buffer pointers
+        if OVERLAP_MEMORY
+                loc     pb, #usb_host_start
+        else
+                loc     pb, #hid_descr
+        end
                 mov     hid_descr_p, pb
                 'add    pb, #HID_DESCR_LEN ' WE SHARE THIS
+                {
                 mov     hid_descr_p + 1, pb
                 add     pb, #HID_DESCR_LEN
                 mov     hid_descr_p + 2, pb
@@ -1608,6 +1632,7 @@ usb_host_init
                 mov     hid_descr_p + 6, pb
                 add     pb, #HID_DESCR_LEN
                 mov     hid_descr_p + 7, pb
+                }
         
                 {
                 loc     pb, #hid_report
@@ -2034,8 +2059,7 @@ if HAVE_MOUSE
                 loc     ptra, #get_desc                 ' Get HID descriptor
                 wrword  #$FF, ptra[wLength]
                 wrword  ms_intf_num,ptra[wIndex]
-                alts    hdev_port, #hid_descr_p
-                mov     pb, 0-0
+                call    #get_hid_descr_buffer
                 call    #control_read
                 cmp     retval, #PID_ACK        wz
         if_nz   altd    hdev_port, #hdev_ep_addr
@@ -2043,8 +2067,7 @@ if HAVE_MOUSE
         if_nz   jmp     #.notify_client
                 altd    hdev_port, #gp_descr_len
                 mov     0-0, total_data
-                alts    hdev_port, #hid_descr_p
-                mov     pb, 0-0
+                call    #get_hid_descr_buffer
                 debug(uhex(pb),uhex_byte_array(pb,total_data))
 
                 getbyte htmp, ms_intf_num, #0
@@ -2124,8 +2147,7 @@ if _HAVE_GAMEPAD
                 loc     ptra, #get_desc                 ' Get HID descriptor
                 wrword  #$FF, ptra[wLength]
                 wrword  #0,ptra[wIndex] ' this breaks if not zero?
-                alts    hdev_port, #hid_descr_p
-                mov     pb, 0-0
+                call    #get_hid_descr_buffer
                 call    #control_read
                 cmp     retval, #PID_ACK        wz
         if_nz   altd    hdev_port, #hdev_ep_addr
@@ -2133,8 +2155,7 @@ if _HAVE_GAMEPAD
         if_nz   jmp     #.notify_client
                 altd    hdev_port, #gp_descr_len
                 mov     0-0, total_data
-                alts    hdev_port, #hid_descr_p
-                mov     pb, 0-0
+                call    #get_hid_descr_buffer
                 debug(uhex(pb),uhex_byte_array(pb,total_data))
 
                 mov     htmp2, #HID_READY               ' Standard gamepad
@@ -2682,8 +2703,8 @@ hid_decode
 '   ptrb - controller report
 '------------------------------------------------------------------------------
 hpad_hid
-                alts    hdev_port, #hid_descr_p
-                mov     ptra, 0-0
+                call    #get_hid_descr_buffer
+                mov     ptra, pb
                 alts    hdev_port, #gp_descr_len
                 mov     pa, 0-0
                 'debug(udec(hdev_port), " HID ", uhex_long(ep_addr_pid),uhex_long(ptra),udec(pa))
@@ -3687,8 +3708,9 @@ end
 usb_cache_start
 
 ' HID descriptor and report buffers
+if !!OVERLAP_MEMORY
 hid_descr       byte    0[HID_DESCR_LEN * MAX_DEVICES]
-'hid_report      byte    0[HID_IN_RPT_LEN * MAX_DEVICES]
+end
 hkbd_report     byte    0[8]
 hkbd_led_rep    byte    0
 alignl
