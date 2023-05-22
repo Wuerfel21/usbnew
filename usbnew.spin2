@@ -1358,7 +1358,7 @@ discon_entry
         if HAVE_HIDPAD
                 loc     pb, #@hidpad_report - @usb_host_start
                 add     pb, hcog_base_addr
-                setq    #(HIDPAD_REPORT_SIZE/4)*4 - 1
+                setq    #(HIDPAD_REPORT_SIZE/4)*MAX_DEVICES - 1
                 wrlong  #0,pb
         end
         if EMUPAD_MAX_DEV > 0
