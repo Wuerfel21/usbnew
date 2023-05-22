@@ -1612,7 +1612,7 @@ end
 usb_host_init
                 ' Initialize buffer pointers
         if OVERLAP_MEMORY
-                loc     pb, #usb_host_start
+                loc     pb, #@usb_host_start
         else
                 loc     pb, #hid_descr
         end
