@@ -2164,6 +2164,7 @@ if _HAVE_GAMEPAD
                 loc     ptra, #xinp_led_cmd             ' Turn on LED
                 mov     pb,hdev_port
                 cmpsub  pb,#1 ' root device is also player 1
+                fle     pb,#3
                 add     pb,#$06 ' LED patterns 06..09 for players 1..4
                 wrbyte  pb, ptra[2]
 
@@ -2179,7 +2180,7 @@ if _HAVE_GAMEPAD
                 loc     ptra, #ps3_command_buff         ' Turn on LED
                 mov     pb,hdev_port
                 fge     pb,#1 ' root device is also player 1
-                'fle    pb,#4
+                fle     pb,#4
                 decod   pb
                 wrbyte  pb, ptra[9]
 
