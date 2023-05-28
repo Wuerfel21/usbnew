@@ -22,6 +22,8 @@ CON
 
     KEYQUEUE_SIZE = 0
 
+    NUMLOCK_DEFAULT_STATE = true
+
     HAVE_MOUSE = false
 
     HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
@@ -2025,7 +2027,7 @@ hset_config
         'if_nz   jmp     #.notify_client
                 mov     hctwait, _2ms_
                 call    #poll_waitx
-                mov     kb_led_states, #LED_NUMLKF
+                mov     kb_led_states, #NUMLOCK_DEFAULT_STATE ? LED_NUMLKF : 0
                 mov     hkbd_ledstates, kb_led_states
                 loc     pa, #hkbd_led_rep
                 wrbyte  hkbd_ledstates,pa
