@@ -3194,61 +3194,61 @@ hpad_translate
 
         ' A kingdom for a macro assembler...
               rdbyte    htmp,ptra++
-        if EMUPAD_BT0_BIT > 0
+        if EMUPAD_BT0_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT0_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT1_BIT > 0
+        if EMUPAD_BT1_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT1_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT2_BIT > 0
+        if EMUPAD_BT2_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT2_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT3_BIT > 0
+        if EMUPAD_BT3_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT3_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT4_BIT > 0
+        if EMUPAD_BT4_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT4_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT5_BIT > 0
+        if EMUPAD_BT5_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT5_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT6_BIT > 0
+        if EMUPAD_BT6_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT6_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT7_BIT > 0
+        if EMUPAD_BT7_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT7_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT8_BIT > 0
+        if EMUPAD_BT8_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT8_BIT
         end
               rdbyte    htmp,ptra++
-        if EMUPAD_BT9_BIT > 0
+        if EMUPAD_BT9_BIT >= 0
               cmpsub    htmp,#1 wc
               testb     hidr_buttons,htmp       andc
         if_c  bith      retval,#EMUPAD_BT9_BIT
