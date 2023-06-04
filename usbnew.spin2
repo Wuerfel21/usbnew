@@ -14,6 +14,8 @@ CON
     CLKFREQ_PTR = $14
 
     USB_BASE_PIN  = 16
+    USB_ENABLE_OFFSET = 1 ' Set -1 if not present
+    USB_DMINUS_OFFSET = 2 ' Must end up on an even pin. D+ is always this +1
 
     ACTIVITY_LED  = 57
     ERROR_LED     = 56
@@ -80,10 +82,18 @@ CON
 PUB start() : r
   return coginit(COGEXEC_NEW,@usb_host_start,0)
 
+'' Must be called before start()
 PUB set_basepin(pin)
-  usb_event_pin := pin
-  dm := pin+2
-  dp := pin+3
+  if USB_ENABLE_OFFSET >= 0
+    usb_enable_pin := pin+USB_ENABLE_OFFSET
+  dm := pin+USB_DMINUS_OFFSET
+  dp := pin+USB_DMINUS_OFFSET+1
+
+'' Must be called before start()
+PUB set_pins_explicit(enable,dminus)
+  usb_enable_pin := enable
+  dm := dminus
+  dp := dminus+1
 
 '' Get current pressed state of a keyboard key
 PUB keystate(key) : r | buf[2],tmp
@@ -745,9 +755,9 @@ cmd_data        long    0
 usb_err_code    long    ERR_NONE
 
 ' Parameters block assigned at cog startup
-dm              long    USB_BASE_PIN + 2    ' Client defines the basepin for four consecutive USB port pins
-dp              long    USB_BASE_PIN + 3
-usb_event_pin   long    USB_BASE_PIN        ' Host event reporting uses a long repository smart pin
+dm              long    USB_BASE_PIN + USB_DMINUS_OFFSET ' Client defines the basepin for four consecutive USB port pins
+dp              long    USB_BASE_PIN + USB_DMINUS_OFFSET + 1
+usb_enable_pin  long    USB_ENABLE_OFFSET < 0 ? -1 : USB_BASE_PIN + USB_ENABLE_OFFSET
 if ACTIVITY_LED >= 0
 host_active_led long    ACTIVITY_LED        ' Client defines the LED pin# for host bus activity
 end
@@ -1354,11 +1364,10 @@ host_reset
                 wypin   #OUT_IDLE, dm
 
                 ' Handle Port protection enable and startup delay
-                mov     htmp, usb_event_pin             ' I/O + 1 pin is the Serial Host USB Protection enable/disable
-                add     htmp, #1                        ' Protection enable is a one-time operation
-                drvl    htmp                            ' disable port
+                cmp     usb_enable_pin, #0      wc
+        if_ae   drvl    usb_enable_pin                 ' disable port
                 waitx   _21ms_                          ' Wait a while for everything to turn off
-                drvh    htmp                            ' Enable the port
+        if_ae   drvh    usb_enable_pin                  ' Enable the port
                 waitx   _21ms_                          ' Hold to let the idle state get settled
 
                 setd    pa, #hreg_init_start            ' Reset all host common registers to startup values
@@ -1518,7 +1527,7 @@ hidle
         if_nc   jmp     #hidle                          ' Bus still IDLE
                 call    #wait_txn_ok
                 wypin   ##OUT_IDLE, dm                  ' Float USB
-                wxpin   #DEV_DISCONNECT, usb_event_pin  ' Notify client of disconnect
+                'wxpin  #DEV_DISCONNECT, usb_event_pin  ' Notify client of disconnect
                 jmp     #host_reset                     ' Device disconnected
 
 hsuspend
@@ -1680,9 +1689,9 @@ usb_host_init
                 drvl    host_error_led                  ' Ensure fatal error LED is inactive
         end
 
-                dirl    usb_event_pin                   ' Configure the USB event mailbox smart pin
-                wrpin   ##SP_REPO1_MODE, usb_event_pin  ' Mailbox smart pin output is enabled, so this pin# will raise
-                dirh    usb_event_pin                   ' IN at event post and OUT drives the Serial Host activity LED.
+                'dirl   usb_event_pin                   ' Configure the USB event mailbox smart pin
+                'wrpin  ##SP_REPO1_MODE, usb_event_pin  ' Mailbox smart pin output is enabled, so this pin# will raise
+                'dirh   usb_event_pin                   ' IN at event post and OUT drives the Serial Host activity LED.
 ' Configure and enable the Serial Host USB port.
                 jmp     #host_reset                     ' Initialize host and enter main processing loop
 
@@ -2273,7 +2282,8 @@ end
                 altsb   hdev_port, #hdev_type
                 setbyte htmp2                           ' Save device ready
                 debug(uhex_long(hdev_type,hdev_type+1))
-        _ret_   wxpin   htmp2, usb_event_pin            ' Notify the client keyboard and/or mouse configured
+        '_ret_  wxpin   htmp2, usb_event_pin            ' Notify the client keyboard and/or mouse configured
+                ret
 
 '------------------------------------------------------------------------------
 ' Initialize the keyboard/mouse data area to start-up values.
