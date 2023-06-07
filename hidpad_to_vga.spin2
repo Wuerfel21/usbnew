@@ -67,8 +67,9 @@ PRI feik_tab(size,inset=0) | col
     if col//size == inset
       quit
 
-PRI print_mouse | x,y,z
-  x,y,z := usb.mouse_xyz()
+PRI print_mouse | x,y,sx,sy
+  x,y := usb.mouse_xy()
+  sx,sy := usb.mouse_scroll()
   text.printStr(@"Mouse:")
   text.bin(usb.mouse_buttons(),3)
   feik_tab(12)
@@ -79,7 +80,7 @@ PRI print_mouse | x,y,z
   text.dec(y)
   feik_tab(12)
   text.printStr(@"Z: ")
-  text.dec(z)
+  text.dec(sy)
 
   text.nl()
 

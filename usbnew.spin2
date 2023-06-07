@@ -175,11 +175,17 @@ PUB hidpad_hat(dev,hatnum)
   else 
     return byte[@hidpad_report+dev*HIDPAD_REPORT_SIZE][6*4+hatnum]
 
-PUB mouse_xyz() : x,y,z
+'' Get mouse coordinates
+PUB mouse_xy() : x,y
   x := mouse_xacc
   y := mouse_yacc
-  z := mouse_zacc
 
+'' Get mouse scrolling (horizontal scroll NYI)
+PUB mouse_scroll() : x,y
+  x := 0
+  y := mouse_zacc
+
+'' Emulate mouse movement
 PUB mouse_move(x,y)
   mouse_lock := 1
   waitus(2) ' hope driver is now done
