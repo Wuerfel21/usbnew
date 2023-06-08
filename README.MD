@@ -92,7 +92,7 @@ The details of the report format can be configured through a set of constants (*
 
 ### Gamepad mapping
 
-Since gamepads in general don't agree on which logical button corrosponds to which physical button, there needs to be an ability to load user-defined per-device mappings. EmuPad makes it easy to implement [the PADMAP.TXT standard](https://github.com/Wuerfel21/usbnew/wiki/PADMAP.TXT-Format-and-the-reference-gamepad):
+Since gamepads in general don't agree on which logical button corrosponds to which physical button, there needs to be an ability to load user-defined per-device mappings. EmuPad and the `padmap_parser.spin2` provided in this repo make it easy to implement [the PADMAP.TXT standard](https://github.com/Wuerfel21/usbnew/wiki/PADMAP.TXT-Format-and-the-reference-gamepad):
 
 ```spin
 '' This example uses flexspin's libc for file access
@@ -112,6 +112,8 @@ PUB main() | f
     c.fclose(f)
   else
     debug("Couldn't load PADMAP")
+
+  usb.start()
 
   repeat
     ' Now do something with the data
