@@ -202,7 +202,7 @@ OBJ '' HIDPad API
 PUB hidpad_id(dev) : r
   return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][0]
 
-'' Get device caps. These are often false-positive
+'' Get device capabilites. These are often false-positive.
 '' (i.e. axis marked as valid, but not physically extant on device)
 '' xxxxxxxx_xxrrrzyx_hhhhaaaa_bbbbbbbb
 ''            zyx||| |||||||| ++++++++ n. buttons
@@ -212,26 +212,26 @@ PUB hidpad_id(dev) : r
 PUB hidpad_getcaps(dev) : r
   return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][1]
 
-'' Get all buttons for a device
-PUB hidpad_buttons(dev) :r
+'' Get all button states for a device
+PUB hidpad_buttons(dev) : r 
   return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][5]
 
-'' Get one button
-PUB hidpad_button(dev,bnum)
+'' Get state of one button
+PUB hidpad_button(dev,bnum) : r
   if bnum +>= 32
     return false
   else
     return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][5].[bnum]
 
-''
-PUB hidpad_axis(dev,axnum)
+'' Get state of an axis (normalized between -32768 and 32767)
+PUB hidpad_axis(dev,axnum) : r
   if axnum +>= 6
     return 0
   else 
     return word[@hidpad_report+dev*HIDPAD_REPORT_SIZE][4+axnum] signx 15
 
-''
-PUB hidpad_hat(dev,hatnum)
+'' Get state of a hat
+PUB hidpad_hat(dev,hatnum) : r
   if hatnum +>= 4
     return 0
   else 

@@ -63,7 +63,18 @@ Scancodes are standard USB scancodes (usbnew defines KEY_\* constants for them).
 
 ## HIDPad interface
 
-The HIDpad interface
+The HIDPad interface provides access to game controllers (contrary to the name, not just HID-class, but also Xbox360-style XInput). The HIDPad interface is enabled by setting `HAVE_HIDPAD`.
+
+**Warning: Do not pass a `dev` value greater or equal to `MAX_DEVICES` into any hidpad function!**
+
+|||
+|-|-|
+|`hidpad_id(dev) : r`|Get VID/PID pair for connected device. 0 means disconnected|
+|`hhidpad_getcaps(dev) : r`|Get device capabilites. These are often false-positive. **TODO look at source for format**|
+|`hidpad_buttons(dev) : r `|Get all button states for a device|
+|`hidpad_button(dev,bnum) : r`|Get state of one button|
+|`hidpad_axis(dev,axnum) : r`||Get state of an axis (normalized between -32768 and 32767)
+|`hidpad_hat(dev,hatnum) : r`|Get state of a hat|
 
 ## EmuPad interface
 
