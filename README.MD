@@ -12,18 +12,35 @@ This is a USB Host driver for Parallax Propeller 2 focused on HID input devices.
  - The scroll wheel on many mice currently can't be read.
  - For detailed compatibility info, see [the wiki](https://github.com/Wuerfel21/usbnew)
 
-## General options
+## Configurable options
 
 These options should be set using the Spin2 constant override syntax:
 
 |||
 |-|-|
-|`OVERLAP_MEMORY`|If true, overlaps temporary buffers with code only needed on startup. Reduces memory usage at expense of not being able to restart usbnew.|
+|`USB_BASEPIN`|Base pin of the USB port to use. Only one port is used.|
+|`USB_ENABLE_OFFSET`|Offset of the port protection enable pin from the basepin. May be -1 if no port protection chip is used|
+|`USB_DMINUS_OFFSET`|Offset of the D- pin from the basepin. D+ is always the pin immediately after D-. D- must also be even-numbered.|
 |`NUMLOCK_DEFAULT_STATE`|Default state of numlock|
+|`ACTIVITY_LED`|Pin for activity LED (-1 to disable)|
+|`ERROR_LED`|Pin for error LED (-1 to disable)|
+|`KEYQUEUE_SIZE`|Size of the keyboard queue. 0 disables the interface|
+|`HAVE_MOUSE`|Mouse interface enable flag|
+|`HAVE_HIDPAD`|HIDPaf interface enable flag|
+|`EMUPAD_MAX_PLAYER`|EmuPad max player count 0 disables the interface.|
+|`EMUPAD_MAX_RULES`|Size of the EmuPad mapping rule buffer|
+|`OVERLAP_MEMORY`|If true, overlaps temporary buffers with code only needed on startup. Reduces memory usage at expense of not being able to restart usbnew.|
+|`CLKFREQ_PTR`|Where CLKFREQ lives (don't change if you don't know what you're doing)|
 
-**TODO**
+## Startup methods
 
-
+|||
+|-|-|
+|`start() : r`|Start driver cog with current configuration|
+|`stop()`|Stop driver cog|
+|`current_cog()`|Get current driver cog or -1 if not running|
+|`set_basepin(pin)`|Runtime override for `USB_BASEPIN`. Must be called before `start()`|
+|`set_pins_explicit(enable,dminus)`|Finer-grained runtime override for USB pins. Must be called before `start()`|
 
 ## Keyboard state interface
 

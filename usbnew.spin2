@@ -96,6 +96,10 @@ PUB stop()
       if usb_enable_pin >= 0
         pinclear(usb_enable_pin)
 
+'' Get current driver cog or -1 if not running
+PUB current_cog() : r
+  return driver_cog - 1
+
 '' Must be called before start()
 PUB set_basepin(pin)
   if USB_ENABLE_OFFSET >= 0
