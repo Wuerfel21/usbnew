@@ -79,6 +79,8 @@ CON
 
     MAX_DEVICES = 7 ' DO. NOT. TOUCH.
 
+OBJ '' Startup/configuration
+
 PUB start() : r
   return coginit(COGEXEC_NEW,@usb_host_start,0)
 
@@ -94,6 +96,9 @@ PUB set_pins_explicit(enable,dminus)
   usb_enable_pin := enable
   dm := dminus
   dp := dminus+1
+
+OBJ '' Keyboard State API
+    '' (Always enabled)
 
 '' Get current pressed state of a keyboard key
 PUB keystate(key) : r | buf[2],tmp
@@ -123,18 +128,63 @@ PUB keystate(key) : r | buf[2],tmp
 PUB ledstates() : r
   return hkbd_led_rep
 
-PUB set_emupad_ptr(ptr) ' Call before starting!
-  if EMUPAD_MAX_DEV > 0
-    emupad_out_ptr := ptr
+OBJ '' Keyboard queue API
+    '' Set KEYQUEUE_SIZE to enable (recommended value: 32)
 
-PUB get_emupad_rules() : r
-  return @emupad_rule_buffer
+'' Return key event from buffer if there is one
+PUB get_key() : r | tail
+  tail := keyq_tail
+  if keyq_head == tail
+    return 0 ' No event
+  r := keyq_data[tail]
+  if ++tail == KEYQUEUE_SIZE
+    tail := 0
+  keyq_tail := tail
 
-PUB get_keyboard_raw_buffer() :r
-  return @hkbd_report
+'' Peek top of key event buffer
+PUB peek_key() : r | tail
+  tail := keyq_tail
+  if keyq_head == tail
+    return 0 ' No event
+  else
+    return keyq_data[tail]
 
-PUB get_hidpad_buffer() : r
-  return @hidpad_report
+OBJ '' Mouse API
+    '' Set HAVE_MOUSE to enable
+
+'' Get mouse coordinates
+PUB mouse_xy() : x,y
+  x := mouse_xacc
+  y := mouse_yacc
+
+'' Get mouse scrolling (horizontal scroll NYI)
+PUB mouse_scroll() : x,y
+  x := 0
+  y := mouse_zacc
+
+'' Emulate mouse movement
+PUB mouse_move(x,y)
+  mouse_lock := 1
+  waitus(2) ' hope driver is now done
+  mouse_xacc := x
+  mouse_yacc := y
+  if mouse_outptr
+    long[mouse_outptr] := y << 16 | x & $FFFF
+  mouse_lock := 0
+
+PUB mouse_buttons() : r
+  return mouse_bstate&7
+
+PUB mouse_set_limits(xlim,ylim)
+  mouse_limits[0] := xlim
+  mouse_limits[1] := ylim
+
+PUB mouse_set_outptr(ptr)
+  mouse_outptr := ptr
+
+OBJ '' HIDPad API
+    '' Set HAVE_HIDPAD to enable.
+    '' Warning: never pass a device ID larger or equal than MAX_DEVICES
 
 '' Get VID/PID pair for connected device. 0 means disconnected
 PUB hidpad_id(dev) : r
@@ -175,53 +225,24 @@ PUB hidpad_hat(dev,hatnum)
   else 
     return byte[@hidpad_report+dev*HIDPAD_REPORT_SIZE][6*4+hatnum]
 
-'' Get mouse coordinates
-PUB mouse_xy() : x,y
-  x := mouse_xacc
-  y := mouse_yacc
+OBJ '' EmuPad API
+    '' Set EMUPAD_MAX_DEV to enable
+    '' See docs for more details
 
-'' Get mouse scrolling (horizontal scroll NYI)
-PUB mouse_scroll() : x,y
-  x := 0
-  y := mouse_zacc
+PUB set_emupad_ptr(ptr) ' Call before starting!
+  if EMUPAD_MAX_DEV > 0
+    emupad_out_ptr := ptr
 
-'' Emulate mouse movement
-PUB mouse_move(x,y)
-  mouse_lock := 1
-  waitus(2) ' hope driver is now done
-  mouse_xacc := x
-  mouse_yacc := y
-  if mouse_outptr
-    long[mouse_outptr] := y << 16 | x & $FFFF
-  mouse_lock := 0
+PUB get_emupad_rules() : r
+  return @emupad_rule_buffer
 
-PUB mouse_buttons() : r
-  return mouse_bstate&7
+OBJ '' Raw buffer getters (for advanced/debug use)
 
-PUB mouse_set_limits(xlim,ylim)
-  mouse_limits[0] := xlim
-  mouse_limits[1] := ylim
+PUB get_keyboard_raw_buffer() :r
+  return @hkbd_report
 
-PUB mouse_set_outptr(ptr)
-  mouse_outptr := ptr
-
-'' Return key event from buffer if there is one
-PUB get_key() : r | tail
-  tail := keyq_tail
-  if keyq_head == tail
-    return 0 ' No event
-  r := keyq_data[tail]
-  if ++tail == KEYQUEUE_SIZE
-    tail := 0
-  keyq_tail := tail
-
-'' Peek top of key event buffer
-PUB peek_key() : r | tail
-  tail := keyq_tail
-  if keyq_head == tail
-    return 0 ' No event
-  else
-    return keyq_data[tail]
+PUB get_hidpad_buffer() : r
+  return @hidpad_report
 
 
 DAT             ' Startup for ASM only
