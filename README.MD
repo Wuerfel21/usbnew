@@ -86,6 +86,36 @@ The EmuPad interface is enabled by setting `EMUPAD_MAX_PLAYER` to the number
 
 When active, the EMUPAD_MAX_PLAYER longs at the configured pointer are updated in real-time with input data.
 
-**TODO more**
+Connected game controllers will be mapped to player slots based on the port number they are connected to. The keyboard always controls player 1, possibly at the same time as the first game controller. For example, if there is a gamepad on port 1, a keyboard on port 2 and another gamepad on port 4, the first gamepad and the keyboard will both control player 1 and the second controller will control player 2. If there are more than EMUPAD_MAX_PLAYER controllers connected, the extraneous ones are ignored.
 
+The details of the report format can be configured through a set of constants (**TODO document**)
+
+### Gamepad mapping
+
+Since gamepads in general don't agree on which logical button corrosponds to which physical button, there needs to be an ability to load user-defined per-device mappings. EmuPad makes it easy to implement [the PADMAP.TXT standard](https://github.com/Wuerfel21/usbnew/wiki/PADMAP.TXT-Format-and-the-reference-gamepad):
+
+```spin
+'' This example uses flexspin's libc for file access
+_CLKFREQ = 200_000_000
+OBJ
+  usb: "usbnew" | EMUPAD_MAX_PLAYER = 1
+  padmap: "padmap_parser"
+  c: "libc"
+VAR
+  long emupad_report
+PUB main() | f
+  usb.set_emupad_ptr(@emupad_data)
+  _mount(@"/sd",c._vfs_open_sdcard())
+  f := c.fopen(@"/sd/PADMAP.TXT",@"r")
+  if f
+    padmap.parse(usb.get_emupad_rule_buffer(),usb.EMUPAD_MAX_RULES,@c.fgetc,f,@"yourappname")
+    c.fclose(f)
+  else
+    debug("Couldn't load PADMAP")
+
+  repeat
+    ' Now do something with the data
+    debug(ubin_long(emupad_report))
+
+```
 
