@@ -1,0 +1,5 @@
+CON
+  _CLKFREQ = 200_000_000
+
+OBJ
+  usb:  "usbnew"

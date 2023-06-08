@@ -7,11 +7,11 @@ _CLKFREQ = 252_000_000
 
 OBJ
 text: "vga/p2textdrv"
-usb: "usbnew" | EMUPAD_MAX_DEV = 4
+usb: "usbnew" | EMUPAD_MAX_PLAYER = 4
 padmap: "padmap_parser"
 
 VAR
-long emupad[usb.EMUPAD_MAX_DEV]
+long emupad[usb.EMUPAD_MAX_PLAYER]
 
 PUB main() | tmp
 

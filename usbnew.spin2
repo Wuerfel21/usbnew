@@ -32,7 +32,7 @@ CON
     HIDPAD_REPORT_SIZE = 7*4 ' do not change!
     HIDPAD_DEVICES = 4 ' do not change!
 
-    EMUPAD_MAX_DEV = 0 ' Set to 0 to disable EmuPad interface
+    EMUPAD_MAX_PLAYER = 0 ' Set to 0 to disable EmuPad interface
     EMUPAD_MAX_RULES = 20
     
     ' EmuPad report format config
@@ -75,7 +75,7 @@ CON
     _EMUPAD_LR_MASK = (decod EMUPAD_LEFT_BIT) | (decod EMUPAD_RIGHT_BIT)
     _EMUPAD_RULE_SIZE = 10+4+1
 
-    _HAVE_GAMEPAD = HAVE_HIDPAD || (EMUPAD_MAX_DEV > 0)
+    _HAVE_GAMEPAD = HAVE_HIDPAD || (EMUPAD_MAX_PLAYER > 0)
 
     MAX_DEVICES = 7 ' DO. NOT. TOUCH.
 
@@ -141,7 +141,7 @@ PUB get_key() : r | tail
     tail := 0
   keyq_tail := tail
 
-'' Peek top of key event buffer
+'' Peek top of key event buffer (returns 0 if no pending event)
 PUB peek_key() : r | tail
   tail := keyq_tail
   if keyq_head == tail
@@ -226,11 +226,11 @@ PUB hidpad_hat(dev,hatnum)
     return byte[@hidpad_report+dev*HIDPAD_REPORT_SIZE][6*4+hatnum]
 
 OBJ '' EmuPad API
-    '' Set EMUPAD_MAX_DEV to enable
+    '' Set EMUPAD_MAX_PLAYER to enable
     '' See docs for more details
 
 PUB set_emupad_ptr(ptr) ' Call before starting!
-  if EMUPAD_MAX_DEV > 0
+  if EMUPAD_MAX_PLAYER > 0
     emupad_out_ptr := ptr
 
 PUB get_emupad_rules() : r
@@ -800,7 +800,7 @@ dev_desc_buff_p long    0
 con_desc_buff_p long    0
 cache_start_p   long    0
 cache_end_p     long    0
-if EMUPAD_MAX_DEV > 0
+if EMUPAD_MAX_PLAYER > 0
 emupad_out_ptr  long    0
 end
 save_sysclk     long    0         ' Save the current sysclock as the client may change it
@@ -885,9 +885,9 @@ hkbd_ledstates  res     1         ' Off/on state of keyboard LEDs
 hdev_ep_addr    res     1+MAX_DEVICES
 hdev_out_addr   res     1
 
-if EMUPAD_MAX_DEV > 0
-hkbd_emupad_buffer res EMUPAD_MAX_DEV
-hpad_emupad_buffer res EMUPAD_MAX_DEV
+if EMUPAD_MAX_PLAYER > 0
+hkbd_emupad_buffer res EMUPAD_MAX_PLAYER
+hpad_emupad_buffer res EMUPAD_MAX_PLAYER
 hpad_emupad_rule   res 1+MAX_DEVICES ' This is PER REAL DEVICE
 end
 
@@ -1415,7 +1415,7 @@ discon_entry
                 setq    #(HIDPAD_REPORT_SIZE/4)*MAX_DEVICES - 1
                 wrlong  #0,pb
         end
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
                 loc     pb, #@emupad_reset - @usb_host_start
                 add     pb, hcog_base_addr
                 call    pb
@@ -2184,7 +2184,7 @@ if _HAVE_GAMEPAD
         if_nz   mov     hdev_out_addr, ep_addr_pid
                 mov     ep_addr_pid, hctrl_ep_addr      ' Restore the control ep addr for mouse configuration
 
-                if EMUPAD_MAX_DEV > 0
+                if EMUPAD_MAX_PLAYER > 0
                 ' Find matching emupad rule
                 loc     ptra,#emupad_rule_buffer
                 mov     htmp1,#EMUPAD_MAX_RULES
@@ -2329,7 +2329,7 @@ init_kbdm_data
                 cmp     ptra, pa                wcz
         if_b    jmp     #.loop
         
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
                 call #emupad_reset
         end
 
@@ -2410,7 +2410,7 @@ hget_kbd_in_report
 
                 mov     kb_max_index, hpar3             ' Save actual bytes read
                 call    #hkbd_compare
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
                 setnib  hkbd_emupad_buffer+0,#1,#EMUPAD_TYPE_NIBBLE
                 call    #emupad_write_reports
         end
@@ -2522,7 +2522,7 @@ hkbd_translate
                 cmp     hpar1, #KEY_SCROLLLOCK  wz
   if_z_and_nc   bitnot  hkbd_ledstates, #LED_SCRLKB
 
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
                 cmp     hpar1,#EMUPAD_KB_UP wz
         if_z    bitnc   hkbd_emupad_buffer+0,#EMUPAD_UP_BIT
                 cmp     hpar1,#EMUPAD_KB_DOWN wz
@@ -3185,7 +3185,7 @@ hpad_translate
               wrlong hidr_usage,ptrb
         end
 
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
               call      #emupad_getnum
         if_nz jmp       #.emupad_slot_over
               mov       htmp3,retval
@@ -3341,24 +3341,24 @@ hpad_translate
                 ret
 end
 
-if EMUPAD_MAX_DEV > 0
+if EMUPAD_MAX_PLAYER > 0
 '------------------------------------------------------------------------------
 ' Clear EmuPad state
 '------------------------------------------------------------------------------
 emupad_reset
               cmp emupad_out_ptr,#0 wz
         if_z  ret
-              setq #EMUPAD_MAX_DEV-1
+              setq #EMUPAD_MAX_PLAYER-1
               wrlong #0,emupad_out_ptr
-              setq #EMUPAD_MAX_DEV-1
+              setq #EMUPAD_MAX_PLAYER-1
               rdlong hkbd_emupad_buffer,emupad_out_ptr
-              setq #EMUPAD_MAX_DEV-1
+              setq #EMUPAD_MAX_PLAYER-1
         _ret_ rdlong hpad_emupad_buffer,emupad_out_ptr
 
 '------------------------------------------------------------------------------
 ' Get EmuPad Player number for current device (into retval)
 ' Z flag is also set if current device is valid
-' (Value may be larger than EMUPAD_MAX_DEV !)
+' (Value may be larger than EMUPAD_MAX_PLAYER !)
 '------------------------------------------------------------------------------
 emupad_getnum
               mov       htmp,#0
@@ -3372,7 +3372,7 @@ emupad_getnum
               cmp       htmp,hdev_port wc
         if_11 add       retval,#1
         if_b  ijnz      htmp,#.loop
-              cmp       retval,#EMUPAD_MAX_DEV wc
+              cmp       retval,#EMUPAD_MAX_PLAYER wc
         if_ae modz      _clr wz
               ret
 '------------------------------------------------------------------------------
@@ -3385,7 +3385,7 @@ emupad_discon
               sets      htmp1,retval
               add       htmp1,##(hpad_emupad_buffer<<9)|(hpad_emupad_buffer+1)
 .loop         
-              incmod    htmp,#EMUPAD_MAX_DEV-1 wc
+              incmod    htmp,#EMUPAD_MAX_PLAYER-1 wc
         if_c  alti      htmp1,#%000_111_000
         if_c  mov       0-0,#0
         if_nc alti      htmp1,#%000_111_111
@@ -3398,7 +3398,7 @@ emupad_discon
 ' Update EmuPad reports (all of them...)
 '------------------------------------------------------------------------------
 emupad_write_reports
-              mov       htmp,#EMUPAD_MAX_DEV
+              mov       htmp,#EMUPAD_MAX_PLAYER
               mov       ptra,emupad_out_ptr wz
         if_z  ret
               mov       htmp1,##(htmp2<<19)|(hkbd_emupad_buffer<<9)|(hpad_emupad_buffer)
@@ -3590,7 +3590,7 @@ hub_port_handler
         if_z    mov     hkbd_ctrl_ep, #0
         if_z    mov     kb_led_states, #0
         if_z    mov     hkbd_ledstates, kb_led_states
-        if EMUPAD_MAX_DEV > 0
+        if EMUPAD_MAX_PLAYER > 0
         if_z    mov     hkbd_emupad_buffer+0, #0 ' currently only 1 kb player
                 call    #emupad_getnum
                 call    #emupad_discon
@@ -3757,7 +3757,7 @@ keyq_data long 0[KEYQUEUE_SIZE]
 alignl
 end
 
-if EMUPAD_MAX_DEV > 0
+if EMUPAD_MAX_PLAYER > 0
 emupad_rule_buffer
 byte 0[EMUPAD_MAX_RULES * _EMUPAD_RULE_SIZE]
 '' Default rule directly follows!
