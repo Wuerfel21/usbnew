@@ -184,13 +184,16 @@ PUB mouse_move(x,y)
     long[mouse_outptr] := y << 16 | x & $FFFF
   mouse_lock := 0
 
+'' Get mouse buttons state
 PUB mouse_buttons() : r
   return mouse_bstate&7
 
+'' Set limits for mouse movement
 PUB mouse_set_limits(xlim,ylim)
   mouse_limits[0] := xlim
   mouse_limits[1] := ylim
 
+'' Set pointer for "hardware" sprite control
 PUB mouse_set_outptr(ptr)
   mouse_outptr := ptr
 

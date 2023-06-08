@@ -59,7 +59,19 @@ Scancodes are standard USB scancodes (usbnew defines KEY_\* constants for them).
 
 ## Mouse interface
 
-**TODO**
+The mouse interface provides access to a mouse. It is enabled by setting `HAVE_MOUSE`.
+
+|||
+|-|-|
+|`mouse_xy() : x,y`|Get mouse coordinates|
+|`mouse_scroll() : x,y`|Get mouse scroll position|
+|`mouse_move(x,y)`|Emulate mouse movement|
+|`mouse_buttons() : r`|Get mouse buttons state|
+|`mouse_set_limits(xlim,ylim)`|Set limits for mouse movement|
+|`mouse_set_outptr(ptr)`|Set pointer for "hardware" sprite control **TODO doc**|
+
+When mouse limits are set, the X/Y coordinates are constrained between 0 and the configured limit. If the limits are zero (the default), the mouse coordinates accumulate freely.
+
 
 ## HIDPad interface
 
@@ -73,7 +85,7 @@ The HIDPad interface provides access to game controllers (contrary to the name, 
 |`hhidpad_getcaps(dev) : r`|Get device capabilites. These are often false-positive. **TODO look at source for format**|
 |`hidpad_buttons(dev) : r `|Get all button states for a device|
 |`hidpad_button(dev,bnum) : r`|Get state of one button|
-|`hidpad_axis(dev,axnum) : r`||Get state of an axis (normalized between -32768 and 32767)
+|`hidpad_axis(dev,axnum) : r`|Get state of an axis (normalized between -32768 and 32767)|
 |`hidpad_hat(dev,hatnum) : r`|Get state of a hat|
 
 ## EmuPad interface
