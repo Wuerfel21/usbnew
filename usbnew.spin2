@@ -17,8 +17,8 @@ CON
     USB_ENABLE_OFFSET = 1 ' Set -1 if not present
     USB_DMINUS_OFFSET = 2 ' Must end up on an even pin. D+ is always this +1
 
-    ACTIVITY_LED  = 57
-    ERROR_LED     = 56
+    ACTIVITY_LED  = -1
+    ERROR_LED     = -1
 
     OVERLAP_MEMORY = false ' save memory at cost of making the driver non-reentrant
 
@@ -82,7 +82,19 @@ CON
 OBJ '' Startup/configuration
 
 PUB start() : r
-  return coginit(COGEXEC_NEW,@usb_host_start,0)
+  ifnot driver_cog
+    r := coginit(COGEXEC_NEW,@usb_host_start,0)
+    if r >= 0
+      driver_cog := r+1
+
+PUB stop()
+  if driver_cog
+    cogstop(driver_cog-1)
+    ifnot OVERLAP_MEMORY ' if OVERLAP_MEMORY, be careful
+      driver_cog := 0
+      pinclear(dm addpins 1)
+      if usb_enable_pin >= 0
+        pinclear(usb_enable_pin)
 
 '' Must be called before start()
 PUB set_basepin(pin)
@@ -233,7 +245,7 @@ PUB set_emupad_ptr(ptr) ' Call before starting!
   if EMUPAD_MAX_PLAYER > 0
     emupad_out_ptr := ptr
 
-PUB get_emupad_rules() : r
+PUB get_emupad_rule_buffer() : r
   return @emupad_rule_buffer
 
 OBJ '' Raw buffer getters (for advanced/debug use)
@@ -3808,6 +3820,8 @@ end
 urx_buff        byte    0[URX_BUFF_LEN]         ' USB IN DATAx scratch buffer
 dev_desc_buff   byte    0[DEV_DESC_LEN]         ' Device descriptor
 con_desc_buff   byte    0[CON_BUFF_LEN]         ' Configuration descriptor chain
+
+driver_cog      byte    0                       ' Current driver cog + 1
 
 CON ' USB Host Shared constants
 '------------------------------------------------------------------------------
