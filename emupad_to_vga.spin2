@@ -26,9 +26,9 @@ text.printStr(@"USB HID test")
 
 
 strptr := @test_padmap
-padmap.parse(usb.get_emupad_rules(),usb.EMUPAD_MAX_RULES,@fake_getc,0,@"padmap_test")
+padmap.parse(usb.get_emupad_rule_buffer(),usb.EMUPAD_MAX_RULES,@fake_getc,0,@"padmap_test")
 text.setTextPos(22,0)
-tmp := usb.get_emupad_rules()
+tmp := usb.get_emupad_rule_buffer()
 repeat 6
   printraw(@" ",tmp,usb._EMUPAD_RULE_SIZE)
   tmp += usb._EMUPAD_RULE_SIZE
