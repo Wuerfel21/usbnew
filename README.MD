@@ -161,3 +161,5 @@ PUB main() | f
 
 ```
 
+By setting `EMUPAD_BUILTIN_RULES`, precompiled rules from a `padmap_builtin.dat` will be built into the driver. `padmap_builtin.rb` can be used to generate such a file.
+
