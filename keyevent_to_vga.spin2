@@ -7,7 +7,7 @@ _CLKFREQ = 252_000_000
 
 OBJ
 text: "vga/p2textdrv"
-usb: "usbnew" | HAVE_MOUSE = true, KEYQUEUE_SIZE = 32
+usb: "usbnew" | USB_BASE_PIN = 16, DEBUG_DISABLE = false, HAVE_MOUSE = true, KEYQUEUE_SIZE = 32
 
 VAR
 

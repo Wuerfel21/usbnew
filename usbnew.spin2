@@ -11,77 +11,79 @@
 }
 CON
 
-    CLKFREQ_PTR = $14
+  DEBUG_DISABLE = true
 
-    USB_BASE_PIN  = 16
-    USB_ENABLE_OFFSET = 1 ' Set -1 if not present
-    USB_DMINUS_OFFSET = 2 ' Must end up on an even pin. D+ is always this +1
+  CLKFREQ_PTR = $14
 
-    ACTIVITY_LED  = -1
-    ERROR_LED     = -1
+  USB_BASE_PIN  = 16
+  USB_ENABLE_OFFSET = 1 ' Set -1 if not present
+  USB_DMINUS_OFFSET = 2 ' Must end up on an even pin. D+ is always this +1
 
-    OVERLAP_MEMORY = false ' save memory at cost of making the driver non-reentrant
+  ACTIVITY_LED  = -1
+  ERROR_LED     = -1
 
-    KEYQUEUE_SIZE = 0
+  OVERLAP_MEMORY = false ' save memory at cost of making the driver non-reentrant
 
-    NUMLOCK_DEFAULT_STATE = true
+  KEYQUEUE_SIZE = 0
 
-    HAVE_MOUSE = false
+  NUMLOCK_DEFAULT_STATE = true
 
-    HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
-    HIDPAD_REPORT_SIZE = 7*4 ' do not change!
-    HIDPAD_DEVICES = 4 ' do not change!
+  HAVE_MOUSE = false
 
-    EMUPAD_MAX_PLAYER = 0 ' Set to 0 to disable EmuPad interface
-    EMUPAD_MAX_RULES = 32
-    EMUPAD_BUILTIN_RULES = false
-    
+  HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
+  HIDPAD_REPORT_SIZE = 7*4 ' do not change!
+  HIDPAD_DEVICES = 4 ' do not change!
+
+  EMUPAD_MAX_PLAYER = 0 ' Set to 0 to disable EmuPad interface
+  EMUPAD_MAX_RULES = 32
+  EMUPAD_BUILTIN_RULES = false
+  
     ' EmuPad report format config
-    EMUPAD_TYPE_NIBBLE = 7
-    EMUPAD_TYPE_KBD = 1
-    EMUPAD_TYPE_PAD = 2
+  EMUPAD_TYPE_NIBBLE = 7
+  EMUPAD_TYPE_KBD = 1
+  EMUPAD_TYPE_PAD = 2
 
-    EMUPAD_UP_BIT = 0
-    EMUPAD_DOWN_BIT = 1
-    EMUPAD_LEFT_BIT = 2
-    EMUPAD_RIGHT_BIT = 3
-    EMUPAD_BT0_BIT = 4
-    EMUPAD_BT1_BIT = 5
-    EMUPAD_BT2_BIT = 6
-    EMUPAD_BT3_BIT = 7
-    EMUPAD_BT4_BIT = 8
-    EMUPAD_BT5_BIT = 9
-    EMUPAD_BT6_BIT = 10
-    EMUPAD_BT7_BIT = 11
-    EMUPAD_BT8_BIT = 12
-    EMUPAD_BT9_BIT = 13
+  EMUPAD_UP_BIT = 0
+  EMUPAD_DOWN_BIT = 1
+  EMUPAD_LEFT_BIT = 2
+  EMUPAD_RIGHT_BIT = 3
+  EMUPAD_BT0_BIT = 4
+  EMUPAD_BT1_BIT = 5
+  EMUPAD_BT2_BIT = 6
+  EMUPAD_BT3_BIT = 7
+  EMUPAD_BT4_BIT = 8
+  EMUPAD_BT5_BIT = 9
+  EMUPAD_BT6_BIT = 10
+  EMUPAD_BT7_BIT = 11
+  EMUPAD_BT8_BIT = 12
+  EMUPAD_BT9_BIT = 13
 
     ' EmuPad default keyboard map
     ' You should probably override these
-    EMUPAD_KB_UP    = KEY_UP
-    EMUPAD_KB_DOWN  = KEY_DOWN
-    EMUPAD_KB_LEFT  = KEY_LEFT
-    EMUPAD_KB_RIGHT = KEY_RIGHT
-    EMUPAD_KB_BT0   = KEY_D
-    EMUPAD_KB_BT1   = KEY_V
-    EMUPAD_KB_BT2   = KEY_C
-    EMUPAD_KB_BT3   = KEY_X
-    EMUPAD_KB_BT4   = KEY_F
-    EMUPAD_KB_BT5   = KEY_G
-    EMUPAD_KB_BT6   = KEY_T
-    EMUPAD_KB_BT7   = KEY_Y
-    EMUPAD_KB_BT8   = KEY_BACKSPACE
-    EMUPAD_KB_BT9   = KEY_ENTER
+  EMUPAD_KB_UP    = KEY_UP
+  EMUPAD_KB_DOWN  = KEY_DOWN
+  EMUPAD_KB_LEFT  = KEY_LEFT
+  EMUPAD_KB_RIGHT = KEY_RIGHT
+  EMUPAD_KB_BT0   = KEY_D
+  EMUPAD_KB_BT1   = KEY_V
+  EMUPAD_KB_BT2   = KEY_C
+  EMUPAD_KB_BT3   = KEY_X
+  EMUPAD_KB_BT4   = KEY_F
+  EMUPAD_KB_BT5   = KEY_G
+  EMUPAD_KB_BT6   = KEY_T
+  EMUPAD_KB_BT7   = KEY_Y
+  EMUPAD_KB_BT8   = KEY_BACKSPACE
+  EMUPAD_KB_BT9   = KEY_ENTER
 
 
     ' Computed magic values
-    _EMUPAD_UD_MASK = (decod EMUPAD_UP_BIT) | (decod EMUPAD_DOWN_BIT)
-    _EMUPAD_LR_MASK = (decod EMUPAD_LEFT_BIT) | (decod EMUPAD_RIGHT_BIT)
-    _EMUPAD_RULE_SIZE = 10+4+1
+  _EMUPAD_UD_MASK = (decod EMUPAD_UP_BIT) | (decod EMUPAD_DOWN_BIT)
+  _EMUPAD_LR_MASK = (decod EMUPAD_LEFT_BIT) | (decod EMUPAD_RIGHT_BIT)
+  _EMUPAD_RULE_SIZE = 10+4+1
 
-    _HAVE_GAMEPAD = HAVE_HIDPAD || (EMUPAD_MAX_PLAYER > 0)
+  _HAVE_GAMEPAD = HAVE_HIDPAD || (EMUPAD_MAX_PLAYER > 0)
 
-    MAX_DEVICES = 7 ' DO. NOT. TOUCH.
+  MAX_DEVICES = 7 ' DO. NOT. TOUCH.
 
 OBJ '' Startup/configuration
 

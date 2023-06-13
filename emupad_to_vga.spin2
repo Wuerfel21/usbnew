@@ -7,7 +7,7 @@ _CLKFREQ = 252_000_000
 
 OBJ
 text: "vga/p2textdrv"
-usb: "usbnew" | EMUPAD_MAX_PLAYER = 4
+usb: "usbnew" | USB_BASE_PIN = 16, DEBUG_DISABLE = false, EMUPAD_MAX_PLAYER = 4
 padmap: "padmap_parser"
 
 VAR

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 # Script to generate builtin EmuPad rule binary.
+# Also serves as an example of parsing PADMAP rules with regex.
 
 PADMAP = <<PADMAP
 # Place your builtin rules below

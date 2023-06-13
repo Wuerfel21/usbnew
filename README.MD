@@ -86,10 +86,11 @@ The mouse interface provides access to a mouse. It is enabled by setting `HAVE_M
 |`mouse_move(x,y)`|Emulate mouse movement|
 |`mouse_buttons() : r`|Get mouse buttons state|
 |`mouse_set_limits(xlim,ylim)`|Set limits for mouse movement|
-|`mouse_set_outptr(ptr)`|Set pointer for "hardware" sprite control **TODO doc**|
+|`mouse_set_outptr(ptr)`|Set pointer for "hardware" sprite control (see below)|
 
 When mouse limits are set, the X/Y coordinates are constrained between 0 and the configured limit. If the limits are zero (the default), the mouse coordinates accumulate freely.
 
+The `mouse_set_outptr` function is provided to allow updating the position of a mouse cursor sprite provided by a video driver independently of your main loop. When a non-zero pointer is set, the lower 16 bits of the X and Y position are written to it whenever they update. You should set the mouse limits appropriately to your screen resolution when using this.
 
 ## HIDPad interface
 
@@ -100,11 +101,20 @@ The HIDPad interface provides access to game controllers (contrary to the name, 
 |||
 |-|-|
 |`hidpad_id(dev) : r`|Get VID/PID pair for connected device. 0 means disconnected|
-|`hhidpad_getcaps(dev) : r`|Get device capabilites. These are often false-positive. **TODO look at source for format**|
+|`hidpad_getcaps(dev) : r`|Get device capabilites. These are often false-positive. (see below)|
 |`hidpad_buttons(dev) : r `|Get all button states for a device|
 |`hidpad_button(dev,bnum) : r`|Get state of one button|
 |`hidpad_axis(dev,axnum) : r`|Get state of an axis (normalized between -32768 and 32767)|
 |`hidpad_hat(dev,hatnum) : r`|Get state of a hat|
+
+The format for `hidpad_getcaps`:
+```
+xxxxxxxx_xxrrrzyx_hhhhaaaa_bbbbbbbb
+           zyx||| |||||||| ++++++++ n. buttons
+           |||||| ||||++++--------- n. axes
+           |||||| ++++------------- n. hats
+           ++++++------------------ valid axes
+```
 
 ## EmuPad interface
 

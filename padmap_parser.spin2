@@ -1,11 +1,9 @@
 OBJ {{
 PADMAP.TXT parser library for usbnew EmuPad.
 
-
+See spec here: https://github.com/Wuerfel21/usbnew/wiki/PADMAP.TXT-Format-and-the-reference-gamepad
 
 }}
-
-
 CON
 
   MAX_BUTTONS = 10
