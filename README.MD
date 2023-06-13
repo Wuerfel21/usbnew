@@ -8,7 +8,7 @@ This is a USB Host driver for Parallax Propeller 2 focused on HID input devices.
  - Some hubs don't correctly work with low-speed devices
  - Some devices (mostly wireless receiver dongles) expose both a keyboard and a mouse interface, which will take up the single device slots in usbnew even if only a mouse/keyboard is actually connected.
  - The scroll wheel on many mice currently can't be read.
- - Devices with multiple report IDs (such as many multi-ported game control adapters) don't work fully.
+ - Devices with multiple report IDs (such as many multi-ported game control adapters) don't work fully unless connected to the root port.
  - For detailed compatibility info, see [the wiki](https://github.com/Wuerfel21/usbnew)
 
 ## Configurable options
