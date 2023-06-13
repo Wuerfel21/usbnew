@@ -3197,16 +3197,19 @@ hpad_normalize
 '------------------------------------------------------------------------------
 hpad_translate
 
+                cmp     hidr_id,#2              wc
+        if_ae   ret     wcz
+
         if HAVE_HIDPAD
-              loc ptrb,#hidpad_report
-              mov htmp,hdev_port
-              cmpsub htmp,#1
-              mul htmp,#HIDPAD_REPORT_SIZE
-              add ptrb,htmp
-              alts hdev_port,#hdev_id
-              mov hidr_usage,0-0 ' We can trash hidr_usage with the ID so we can do one atomic block write
-              setq #7-1
-              wrlong hidr_usage,ptrb
+                loc     ptrb,#hidpad_report
+                mov     htmp,hdev_port
+                cmpsub  htmp,#1
+                mul     htmp,#HIDPAD_REPORT_SIZE
+                add     ptrb,htmp
+                alts    hdev_port,#hdev_id
+                mov     hidr_usage,0-0 ' We can trash hidr_usage with the ID so we can do one atomic block write
+                setq    #7-1
+                wrlong  hidr_usage,ptrb
         end
 
         if EMUPAD_MAX_PLAYER > 0
