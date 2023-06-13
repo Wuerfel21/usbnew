@@ -2,8 +2,6 @@
 
 This is a USB Host driver for Parallax Propeller 2 focused on HID input devices. It extensively utilizes constant overrides and conditional assembly to reduce binary bloat to a minimum.
 
-** Warning: Documentation under construction**
-
 ## Known errata
 
  - Currently usbnew only compiles with recent version of flexspin.
