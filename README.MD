@@ -21,14 +21,15 @@ These options should be set using the Spin2 constant override syntax:
 |`USB_BASEPIN`|Base pin of the USB port to use. Only one port is used.|
 |`USB_ENABLE_OFFSET`|Offset of the port protection enable pin from the basepin. May be -1 if no port protection chip is used|
 |`USB_DMINUS_OFFSET`|Offset of the D- pin from the basepin. D+ is always the pin immediately after D-. D- must also be even-numbered.|
-|`NUMLOCK_DEFAULT_STATE`|Default state of numlock|
+|`NUMLOCK_DEFAULT_STATE`|Default state of NumLock|
 |`ACTIVITY_LED`|Pin for activity LED (-1 to disable)|
 |`ERROR_LED`|Pin for error LED (-1 to disable)|
 |`KEYQUEUE_SIZE`|Size of the keyboard queue. 0 disables the interface|
 |`HAVE_MOUSE`|Mouse interface enable flag|
-|`HAVE_HIDPAD`|HIDPaf interface enable flag|
-|`EMUPAD_MAX_PLAYER`|EmuPad max player count 0 disables the interface.|
-|`EMUPAD_MAX_RULES`|Size of the EmuPad mapping rule buffer|
+|`HAVE_HIDPAD`|HIDPad interface enable flag|
+|`EMUPAD_MAX_PLAYER`|EmuPad player count. 0 disables the interface.|
+|`EMUPAD_MAX_RULES`|Size of the EmuPad mapping rule buffer. Only relevant when EmuPad is enabled.|
+|`EMUPAD_BUILTIN_RULES`|Load builtin rules (see below)|
 |`OVERLAP_MEMORY`|If true, overlaps temporary buffers with code only needed on startup. Reduces memory usage at expense of not being able to restart usbnew.|
 |`CLKFREQ_PTR`|Where CLKFREQ lives (don't change if you don't know what you're doing)|
 
@@ -128,7 +129,7 @@ When active, the EMUPAD_MAX_PLAYER longs at the configured pointer are updated i
 
 Connected game controllers will be mapped to player slots based on the port number they are connected to. The keyboard always controls player 1, possibly at the same time as the first game controller. For example, if there is a gamepad on port 1, a keyboard on port 2 and another gamepad on port 4, the first gamepad and the keyboard will both control player 1 and the second controller will control player 2. If there are more than EMUPAD_MAX_PLAYER controllers connected, the extraneous ones are ignored.
 
-The details of the report format can be configured through a set of constants (**TODO document**)
+The details of the report format can be configured through a set of constants: The `EMUPAD_xxx_BIT` ones specify the bit (0..31) in the report long to which the direction or button is to be mapped. The directions are required, but the buttons can be set to -1 to disable them from the report format entirerly. `EMUPAD_TYPE_NIBBLE` specifies the nibble in the report long that contains the device type. Currently the only possible values for this are `EMUPAD_TYPE_KBD` if _only_ a keyboard is connected, `EMUPAD_TYPE_PAD` if a gamepad is conncected and zero if nothing is connected. (The gamepad's type always overrides the keyboard's type). This mechanism is intended to be hacked for custom behaviour (MegaYume sets it based on whether the controller has enough buttons mapped to emulate a 6-button controller).
 
 ### Gamepad mapping
 

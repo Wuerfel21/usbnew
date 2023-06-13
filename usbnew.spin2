@@ -33,11 +33,14 @@ CON
     HIDPAD_DEVICES = 4 ' do not change!
 
     EMUPAD_MAX_PLAYER = 0 ' Set to 0 to disable EmuPad interface
-    EMUPAD_MAX_RULES = 20
+    EMUPAD_MAX_RULES = 32
     EMUPAD_BUILTIN_RULES = false
     
     ' EmuPad report format config
     EMUPAD_TYPE_NIBBLE = 7
+    EMUPAD_TYPE_KBD = 1
+    EMUPAD_TYPE_PAD = 2
+
     EMUPAD_UP_BIT = 0
     EMUPAD_DOWN_BIT = 1
     EMUPAD_LEFT_BIT = 2
@@ -2431,7 +2434,7 @@ hget_kbd_in_report
                 mov     kb_max_index, hpar3             ' Save actual bytes read
                 call    #hkbd_compare
         if EMUPAD_MAX_PLAYER > 0
-                setnib  hkbd_emupad_buffer+0,#1,#EMUPAD_TYPE_NIBBLE
+                setnib  hkbd_emupad_buffer+0,#EMUPAD_TYPE_KBD,#EMUPAD_TYPE_NIBBLE
                 call    #emupad_write_reports
         end
 
@@ -3211,7 +3214,7 @@ hpad_translate
               mov       htmp3,retval
               mov       retval,#0
 
-              setnib    retval,#1,#EMUPAD_TYPE_NIBBLE
+              setnib    retval,#EMUPAD_TYPE_PAD,#EMUPAD_TYPE_NIBBLE
               
               ' hat to directions
               test      hidr_flags,##$F<<12     wz ' any hats?
