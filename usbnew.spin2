@@ -1,14 +1,13 @@
-{
-    "USBNEW" BETA VERSION (USE AT YOUR PERIL)
+{{
+    "USBNEW" modular USB input driver - v1.0.0-rc1
 
-    USB Keyboard/Mouse/Gamepad Driver
     By Ada Gottensträter ("Wuerfel_21")
 
     Original 1CogKbM code by Garry Jordan ("garryj")
     Hub support and significant portions by Marco Maccaferri ("macca")
 
     TERMS OF USE: MIT License
-}
+}}
 CON
 
   DEBUG_DISABLE = true
