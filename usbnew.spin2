@@ -2810,9 +2810,11 @@ hpad_hid
                 and     htmp, #$03
                 cmp     htmp, #1    wz
         if_z    rdbyte  hpar2, ptra++
+        if_z    signx   hpar2,#7
         if_z    sub     pa, #1
                 cmp     htmp, #2    wz
         if_z    rdword  hpar2, ptra++
+        if_z    signx   hpar2,#15
         if_z    sub     pa, #2
                 cmp     htmp, #3    wz
         if_z    rdlong  hpar2, ptra++
