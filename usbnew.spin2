@@ -3166,9 +3166,8 @@ hpad_normalize
                 getword htmp1, htmp, #1     ' htmp1 = min
                 getword htmp, htmp, #0      ' htmp = max
                 signx   htmp1, #15      wc
-        if_c    sub     hidr_size, #1
-        if_c    signx   retval, hidr_size
-        if_c    add     hidr_size, #1
+        if_c    alts    hidr_size, #511
+        if_c    signx   retval, #0-0
                 subs    htmp, htmp1         ' htmp = (max - min)
                 subs    retval, htmp1       ' retval = (retval - min)
                 shl     retval, #16         ' retval = (retval - min) << 16
