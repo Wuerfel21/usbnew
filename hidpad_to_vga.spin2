@@ -101,50 +101,56 @@ PRI print_hidpad(num) | id, caps, i
   text.dec(caps.[15..12])
   text.printStr(@" hats.")
   text.nl()
-  feik_tab(4)
+  feik_tab(4,2)
   text.printStr(@"Buttons: ")
   text.bin(usb.hidpad_buttons(num),caps.[7..0] <# 32)
-  feik_tab(4)
+  feik_tab(4,2)
   text.printStr(@"Hats: ")
   if caps.[15..12]
     repeat i from 0 to caps.[15..12]-1
       text.hex(usb.hidpad_hat(num,i),2)
       text.tx(" ")
   text.nl()
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"X : ")
   if caps.[16]
     text.dec(usb.hidpad_axis(num,0))
   else
     text.printStr(@"N/A")
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"Y : ")
   if caps.[17]
     text.dec(usb.hidpad_axis(num,1))
   else
     text.printStr(@"N/A")
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"Z : ")
   if caps.[18]
     text.dec(usb.hidpad_axis(num,2))
   else
     text.printStr(@"N/A")
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"RX: ")
   if caps.[19]
     text.dec(usb.hidpad_axis(num,3))
   else
     text.printStr(@"N/A")
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"RY: ")
   if caps.[20]
     text.dec(usb.hidpad_axis(num,4))
   else
     text.printStr(@"N/A")
-  feik_tab(12,4)
+  feik_tab(11,2)
   text.printStr(@"RZ: ")
   if caps.[21]
     text.dec(usb.hidpad_axis(num,5))
+  else
+    text.printStr(@"N/A")
+  feik_tab(11,2)
+  text.printStr(@"Sl: ")
+  if caps.[22]
+    text.dec(usb.hidpad_axis(num,6))
   else
     text.printStr(@"N/A")
   text.setTextColours($F,$1)
