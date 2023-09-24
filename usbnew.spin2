@@ -31,7 +31,6 @@ CON
 
   HAVE_HIDPAD = false ' Set to false to disable HidPad inteface
   HIDPAD_REPORT_SIZE = 8*4 ' do not change!
-  HIDPAD_DEVICES = 4 ' do not change!
 
   EMUPAD_MAX_PLAYER = 0 ' Set to 0 to disable EmuPad interface
   EMUPAD_MAX_RULES = 32
