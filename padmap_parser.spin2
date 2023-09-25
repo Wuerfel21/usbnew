@@ -26,13 +26,14 @@ VAR
 ''  get_argument: Opaque argument passed to get_function (normally this is your FILE object)
 ''  appname: Your application name as a string pointer. ASCII letters and numbers only.
 ''
-PUB parse(buffer_ptr,buffer_max,get_function,get_argument,appname)
+PUB parse(buffer_ptr,buffer_max,get_function,get_argument,appname) : cnt
   unget_chr := -1
   get_func := get_function
   get_arg := get_argument
 
   repeat ' Loop over rules
-    parse_rule(buffer_ptr,buffer_max,appname)
+    if parse_rule(buffer_ptr,buffer_max,appname) > 0
+      cnt++
     skip_line()
     if getc() == -1 ' Check EOF
       return
@@ -130,3 +131,19 @@ PRI getc() : chr
 
 PRI unget()
   unget_chr := last_chr
+
+PUB get_rule_ptr(buffer_ptr,buffer_max,id) : ptr
+  ifnot id
+    return 0
+  ptr := buffer_ptr
+  repeat buffer_max
+    if long[ptr] == id
+      return
+    ptr += RULE_SIZE
+  return 0
+
+PUB get_rule_button(rule_ptr, button) : r
+  if rule_ptr == 0 OR button >= MAX_BUTTONS
+    return button
+  else
+    return byte[rule_ptr + 5 + button] - 1
