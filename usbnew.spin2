@@ -215,11 +215,11 @@ PUB hidpad_id(dev) : r
 
 '' Get device capabilites. These are often false-positive.
 '' (i.e. axis marked as valid, but not physically extant on device)
-'' xxxxxxxx_xsrrrzyx_hhhhaaaa_bbbbbbbb
-''           lzyx||| |||||||| ++++++++ n. buttons
-''           ||||||| ||||++++--------- n. axes
-''           ||||||| ++++------------- n. hats
-''           +++++++------------------ valid axes
+'' xxxxxxxx_wsrrrzyx_hhhhaaaa_bbbbbbbb
+''          hlzyx||| |||||||| ++++++++ n. buttons
+''          |||||||| ||||++++--------- n. axes
+''          |||||||| ++++------------- n. hats
+''          ++++++++------------------ valid axes
 PUB hidpad_getcaps(dev) : r
   return long[@hidpad_report+dev*HIDPAD_REPORT_SIZE][1]
 
