@@ -26,6 +26,7 @@ CON
   KEYQUEUE_SIZE = 0
 
   NUMLOCK_DEFAULT_STATE = true
+  RPI_KEYBOARD_NUMLOCK_HACK = true
 
   HAVE_MOUSE = false
   MOUSE_FULL_PROTOCOL = false ' Experimental: Use full HID report protocol for mice
@@ -2104,6 +2105,12 @@ hset_config
                 mov     hctwait, _2ms_
                 call    #poll_waitx
                 mov     kb_led_states, #NUMLOCK_DEFAULT_STATE ? LED_NUMLKF : 0
+        if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
+                alts    hdev_port,#hdev_id
+                mov     htmp,0-0
+                cmp     htmp, ##$04D9_0006      wz      ' Holtek Pi keyboard vendor/product
+        if_e    andn    kb_led_states, #LED_NUMLKF
+        end
                 mov     hkbd_ledstates, kb_led_states
                 loc     pa, #hkbd_led_rep
                 wrbyte  hkbd_ledstates,pa
