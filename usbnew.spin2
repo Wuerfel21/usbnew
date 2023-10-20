@@ -1,5 +1,5 @@
 {{
-    "USBNEW" modular USB input driver - v1.1.3
+    "USBNEW" modular USB input driver - v1.1.4
 
     By Ada Gottensträter ("Wuerfel_21")
 
@@ -2819,10 +2819,12 @@ hid_decode
 
                 altgb   hdev_port, #hdev_type
                 getbyte hidr_type
+        if _HAVE_GAMEPAD
                 cmp     hidr_type, #XINPUT_READY        wz
         if_z    jmp     #hpad_xinput
                 cmp     hidr_type, #PS3_READY           wz
         if_z    jmp     #hpad_ps3
+        end
                 cmp     hidr_type, #KBM_READY           wz
         if_z    mov     hidr_type,#M_READY
                 cmp     hidr_type, #M_READY             wz
@@ -3003,162 +3005,6 @@ hpad_hid
         if_nc   setq    #(hidr_end-hidr_state)-1
         if_nc   rdlong  hidr_state, pb
                 jmp     #.next
-end
-        
-if _HAVE_GAMEPAD
-'------------------------------------------------------------------------------
-' Handle XInput controller
-' On entry:
-'   ptrb - controller report
-'------------------------------------------------------------------------------
-'   Default implementation translates the report to a pseudo-defacto hid
-'   standard and jumps to hpad_translate for actions.
-'   Implementors may take specific actions for this kind of controller.
-'------------------------------------------------------------------------------
-hpad_xinput
-                rdbyte  htmp, ptrb      wz
-        if_nz   ret                         ' Ignore message type <> $00
-                rdbyte  htmp, ptrb[1]
-                cmp     htmp, #$14      wz
-        if_nz   ret                         ' Ignore report length <> $14 (20)
-
-                'debug(udec(hdev_port), " XINPUT ", uhex_long(ep_addr_pid),uhex_long(ptrb))
-
-                bith    hidr_flags, #HID_AXIS_X addbits 5 ' Have all axes
-                setnib  hidr_flags, #6, #2
-
-                rdword  hidr_axis, ptrb[3]  ' X = left stick X
-                rdword  retval, ptrb[4]     ' Y = left stick Y (inverted)
-                not     retval
-                setword hidr_axis, retval, #1
-                rdword  hidr_axis+1, ptrb[5]' Z = right stick X
-                rdword  retval, ptrb[6]     ' RZ = right stick Y (inverted)
-                not     retval
-                setword hidr_axis+2, retval, #1
-
-                mov     hidr_lminmax, #$0000_00FF
-                rdbyte  retval, ptrb[4]     ' left analog trigger
-                cmp     retval, #192    wcz
-        if_ae   bith    hidr_buttons, #6    ' left analog trigger (button)
-                call    #hpad_normalize
-                setword hidr_axis+1, retval, #1
-                rdbyte  retval, ptrb[5]     ' right analog trigger
-                cmp     retval, #192    wcz
-        if_ae   bith    hidr_buttons, #7    ' right analog trigger (button)
-                call    #hpad_normalize
-                setword hidr_axis+2, retval, #0
-
-                setbyte hidr_flags,#13,#0
-                rdword  retval, ptrb[1]
-                testb   retval, #15     wc  ' Y
-                bitc    hidr_buttons, #0
-                testb   retval, #13     wc  ' B
-                bitc    hidr_buttons, #1
-                testb   retval, #12     wc  ' A
-                bitc    hidr_buttons, #2
-                testb   retval, #14     wc  ' X
-                bitc    hidr_buttons, #3
-                testb   retval, #8      wc  ' LB
-                bitc    hidr_buttons, #4
-                testb   retval, #9      wc  ' RB
-                bitc    hidr_buttons, #5
-                testb   retval, #5      wc  ' SELECT
-                bitc    hidr_buttons, #8
-                testb   retval, #4      wc  ' START
-                bitc    hidr_buttons, #9
-                testb   retval, #6      wc  ' L3
-                bitc    hidr_buttons, #10
-                testb   retval, #7      wc  ' R3
-                bitc    hidr_buttons, #11
-                testb   retval, #10     wc  ' XBOX
-                bitc    hidr_buttons, #12
-
-                setnib  hidr_flags, #1, #3
-                getnib  htmp, retval, #0    ' map dpad buttons to hat direction
-                mov     htmp1, ##$F576_F40F
-                mov     htmp2, ##$FFFF_F312
-                altgn   htmp, #htmp1
-                getnib  htmp
-                setbyte hidr_hats, htmp, #0
-
-                jmp     #hpad_translate
-
-'------------------------------------------------------------------------------
-' Handle PS3 controller
-' On entry:
-'   ptrb - controller report
-'------------------------------------------------------------------------------
-'   Default implementation translates the report to a pseudo-defacto hid
-'   standard and jumps to hpad_translate for actions.
-'   Implementors may take specific actions for this kind of controller.
-'------------------------------------------------------------------------------
-hpad_ps3
-                rdbyte  htmp, ptrb++
-                cmp     htmp, #$01      wz
-        if_nz   ret                         ' Ignore report ID <> $01
-
-                debug(udec(hdev_port), " PS3 ", uhex_long(ep_addr_pid),uhex_long(ptrb))
-
-                mov     hidr_lminmax, #$0000_00FF
-                rdbyte  retval, ptrb[5]         ' X = left stick X
-                call    #hpad_normalize
-                setword hidr_axis, retval, #0
-                bith    hidr_flags, #HID_AXIS_X
-                rdbyte  retval, ptrb[6]         ' Y = left stick Y
-                call    #hpad_normalize
-                setword hidr_axis, retval, #1
-                bith    hidr_flags, #HID_AXIS_Y
-                rdbyte  retval, ptrb[7]         ' Z = right stick X
-                call    #hpad_normalize
-                setword hidr_axis+1, retval, #0
-                bith    hidr_flags, #HID_AXIS_Z
-                rdbyte  retval, ptrb[8]         ' RZ = right stick Y
-                call    #hpad_normalize
-                setword hidr_axis+2, retval, #1
-                bith    hidr_flags, #HID_AXIS_RZ
-                setnib  hidr_flags, #4, #2
-
-                mov     hpar1, #8
-                mov     hpar2, #19
-                call    #hpad_getbits
-
-                setbyte hidr_flags,#13,#0
-                testb   retval, #12     wc  ' A
-                bitc    hidr_buttons, #0
-                testb   retval, #13     wc  ' B
-                bitc    hidr_buttons, #1
-                testb   retval, #14     wc  ' X
-                bitc    hidr_buttons, #2
-                testb   retval, #15     wc  ' Y
-                bitc    hidr_buttons, #3
-                testb   retval, #10     wc  ' L1
-                bitc    hidr_buttons, #4
-                testb   retval, #11     wc  ' R1
-                bitc    hidr_buttons, #5
-                testb   retval, #8      wc  ' L2
-                bitc    hidr_buttons, #6
-                testb   retval, #9      wc  ' R2
-                bitc    hidr_buttons, #7
-                testb   retval, #0      wc  ' SELECT
-                bitc    hidr_buttons, #8
-                testb   retval, #3      wc  ' START
-                bitc    hidr_buttons, #9
-                testb   retval, #1      wc  ' LEFT STICK
-                bitc    hidr_buttons, #10
-                testb   retval, #2      wc  ' RIGHT STICK
-                bitc    hidr_buttons, #11
-                testb   retval, #16     wc  ' HOME
-                bitc    hidr_buttons, #12
-
-                setnib  hidr_flags, #1, #3
-                getnib  htmp, retval, #1    ' map dpad buttons to hat direction
-                mov     htmp1, ##$F3F4_120F
-                mov     htmp2, ##$FFF5_FF76
-                altgn   htmp, #htmp1
-                getnib  htmp
-                setbyte hidr_hats, htmp, #0
-
-                jmp     #hpad_translate
 
 '------------------------------------------------------------------------------
 ' Read bits from report data buffer
@@ -3236,6 +3082,159 @@ hpad_normalize
     if_c_ne_z   neg     retval              ' retval = (((retval - min) << 16) - 1) / (max - min)
                 adds    retval, ##$8000 signx 15
                 ret
+end
+
+if _HAVE_GAMEPAD
+'------------------------------------------------------------------------------
+' Handle XInput controller
+' On entry:
+'   ptrb - controller report
+'------------------------------------------------------------------------------
+'   Default implementation translates the report to a pseudo-defacto hid
+'   standard and jumps to hpad_translate for actions.
+'   Implementors may take specific actions for this kind of controller.
+'------------------------------------------------------------------------------
+hpad_xinput
+                rdbyte  htmp, ptrb      wz
+        if_nz   ret                         ' Ignore message type <> $00
+                rdbyte  htmp, ptrb[1]
+                cmp     htmp, #$14      wz
+        if_nz   ret                         ' Ignore report length <> $14 (20)
+
+                'debug(udec(hdev_port), " XINPUT ", uhex_long(ep_addr_pid),uhex_long(ptrb))
+
+                bith    hidr_flags, #HID_AXIS_X addbits 5 ' Have all axes
+                setnib  hidr_flags, #6, #2
+
+                rdword  hidr_axis, ptrb[3]  ' X = left stick X
+                rdword  retval, ptrb[4]     ' Y = left stick Y (inverted)
+                not     retval
+                setword hidr_axis, retval, #1
+                rdword  hidr_axis+1, ptrb[5]' Z = right stick X
+                rdword  retval, ptrb[6]     ' RZ = right stick Y (inverted)
+                not     retval
+                setword hidr_axis+2, retval, #1
+
+                mov     hidr_lminmax, #$0000_00FF
+                rdbyte  retval, ptrb[4]     ' left analog trigger
+                cmp     retval, #192    wcz
+        if_ae   bith    hidr_buttons, #6    ' left analog trigger (button)
+                call    #hpad_normalize
+                setword hidr_axis+1, retval, #1
+                rdbyte  retval, ptrb[5]     ' right analog trigger
+                cmp     retval, #192    wcz
+        if_ae   bith    hidr_buttons, #7    ' right analog trigger (button)
+                call    #hpad_normalize
+                setword hidr_axis+2, retval, #0
+
+                setbyte hidr_flags,#13,#0
+                rdword  retval, ptrb[1]
+                testb   retval, #15     wc  ' Y
+                bitc    hidr_buttons, #0
+                testb   retval, #13     wc  ' B
+                bitc    hidr_buttons, #1
+                testb   retval, #12     wc  ' A
+                bitc    hidr_buttons, #2
+                testb   retval, #14     wc  ' X
+                bitc    hidr_buttons, #3
+                testb   retval, #8      wc  ' LB
+                bitc    hidr_buttons, #4
+                testb   retval, #9      wc  ' RB
+                bitc    hidr_buttons, #5
+                testb   retval, #5      wc  ' SELECT
+                bitc    hidr_buttons, #8
+                testb   retval, #4      wc  ' START
+                bitc    hidr_buttons, #9
+                testb   retval, #6      wc  ' L3
+                bitc    hidr_buttons, #10
+                testb   retval, #7      wc  ' R3
+                bitc    hidr_buttons, #11
+                testb   retval, #10     wc  ' XBOX
+                bitc    hidr_buttons, #12
+
+                setnib  hidr_flags, #1, #3
+                getnib  htmp, retval, #0    ' map dpad buttons to hat direction
+                mov     htmp1, ##$F576_F40F
+                mov     htmp2, ##$FFFF_F312
+                altgn   htmp, #htmp1
+                getnib  htmp
+        _ret_   setbyte hidr_hats, htmp, #0
+
+'------------------------------------------------------------------------------
+' Handle PS3 controller
+' On entry:
+'   ptrb - controller report
+'------------------------------------------------------------------------------
+'   Default implementation translates the report to a pseudo-defacto hid
+'   standard and jumps to hpad_translate for actions.
+'   Implementors may take specific actions for this kind of controller.
+'------------------------------------------------------------------------------
+hpad_ps3
+                rdbyte  htmp, ptrb++
+                cmp     htmp, #$01      wz
+        if_nz   ret                         ' Ignore report ID <> $01
+
+                debug(udec(hdev_port), " PS3 ", uhex_long(ep_addr_pid),uhex_long(ptrb))
+
+                mov     hidr_lminmax, #$0000_00FF
+                rdbyte  retval, ptrb[5]         ' X = left stick X
+                call    #hpad_normalize
+                setword hidr_axis, retval, #0
+                bith    hidr_flags, #HID_AXIS_X
+                rdbyte  retval, ptrb[6]         ' Y = left stick Y
+                call    #hpad_normalize
+                setword hidr_axis, retval, #1
+                bith    hidr_flags, #HID_AXIS_Y
+                rdbyte  retval, ptrb[7]         ' Z = right stick X
+                call    #hpad_normalize
+                setword hidr_axis+1, retval, #0
+                bith    hidr_flags, #HID_AXIS_Z
+                rdbyte  retval, ptrb[8]         ' RZ = right stick Y
+                call    #hpad_normalize
+                setword hidr_axis+2, retval, #1
+                bith    hidr_flags, #HID_AXIS_RZ
+                setnib  hidr_flags, #4, #2
+
+                mov     hpar1, #8
+                mov     hpar2, #19
+                call    #hpad_getbits
+
+                setbyte hidr_flags,#13,#0
+                testb   retval, #12     wc  ' A
+                bitc    hidr_buttons, #0
+                testb   retval, #13     wc  ' B
+                bitc    hidr_buttons, #1
+                testb   retval, #14     wc  ' X
+                bitc    hidr_buttons, #2
+                testb   retval, #15     wc  ' Y
+                bitc    hidr_buttons, #3
+                testb   retval, #10     wc  ' L1
+                bitc    hidr_buttons, #4
+                testb   retval, #11     wc  ' R1
+                bitc    hidr_buttons, #5
+                testb   retval, #8      wc  ' L2
+                bitc    hidr_buttons, #6
+                testb   retval, #9      wc  ' R2
+                bitc    hidr_buttons, #7
+                testb   retval, #0      wc  ' SELECT
+                bitc    hidr_buttons, #8
+                testb   retval, #3      wc  ' START
+                bitc    hidr_buttons, #9
+                testb   retval, #1      wc  ' LEFT STICK
+                bitc    hidr_buttons, #10
+                testb   retval, #2      wc  ' RIGHT STICK
+                bitc    hidr_buttons, #11
+                testb   retval, #16     wc  ' HOME
+                bitc    hidr_buttons, #12
+
+                setnib  hidr_flags, #1, #3
+                getnib  htmp, retval, #1    ' map dpad buttons to hat direction
+                mov     htmp1, ##$F3F4_120F
+                mov     htmp2, ##$FFF5_FF76
+                altgn   htmp, #htmp1
+                getnib  htmp
+        _ret_   setbyte hidr_hats, htmp, #0
+
 
 '------------------------------------------------------------------------------
 ' Perform controller actions
