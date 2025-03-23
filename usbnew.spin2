@@ -1,5 +1,5 @@
 {{
-    "USBNEW" modular USB input driver - v1.1.6
+    "USBNEW" modular USB input driver - v1.1.7
 
     By Ada Gottensträter ("Wuerfel_21")
 
@@ -27,6 +27,7 @@ CON
 
   NUMLOCK_DEFAULT_STATE = true
   RPI_KEYBOARD_NUMLOCK_HACK = true
+  XINPUT_IGNORE_EXTRA_INTFS = true ' Annoying fix for 8bitdo Ultimate 2C
 
   HAVE_MOUSE = false
   MOUSE_FULL_PROTOCOL = false ' Experimental: Use full HID report protocol for mice
@@ -2024,6 +2025,10 @@ end
                 mov     hdev_out_addr, hpar3            ' OUT endpoint address
                 'debug(udec(gp_intf_num))
                 debug(uhex_long(hdev_ep_addr,hdev_ep_addr+1,hdev_ep_addr+2,hdev_ep_addr+3,hdev_ep_addr+4,hdev_ep_addr+5,hdev_ep_addr+6,hdev_ep_addr+7),udec(gp_interval),uhex_long(hdev_out_addr))
+        if XINPUT_IGNORE_EXTRA_INTFS
+                cmp     hdev_class, #$FF        wz
+        if_z    jmp     #hset_config
+        end
                 jmp     #.next_intf
 .hub
                 cmp     hdev_subclass, #SUBCLASS_INTF_NONE  wz
